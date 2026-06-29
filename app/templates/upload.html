@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% block title %}Upload Data{% endblock %}
+{% block tip_group %}upload{% endblock %}
+{% block content %}
+
+<section class="card explainer-card">
+  <div class="card-header"><h2>How this step works <span class="help-tip" data-tooltip-key="upload_page">?</span></h2></div>
+  <p class="muted">This step creates the raw ingredients for the forecast. Your main revenue file is required. Leads and cost files are optional — only needed when those fields are stored in a separate file. The app now supports a fuller funnel grain across platform, affiliate ID, campaign ID, and ads ID so you can line up revenue, leads, cost, and cohorts at a more detailed level.</p>
+</section>
+
+<div class="page-header">
+  <h1>Upload Your Data</h1>
+  <p>{{ project.name }} · Run #{{ run.id }}</p>
+</div>
+
+<form class="card form-grid" method="post" action="/projects/{{ project.id }}/upload" enctype="multipart/form-data" data-loader-submit="upload">
+  <input type="hidden" name="run_id" value="{{ run.id }}">
+
+  <section class="upload-group">
+    <div class="card-header">
+      <h2>Core file <span class="help-tip" data-tooltip="This is the file the forecast anchors on. It should contain the date and the revenue or target column you want to predict.">?</span></h2>
+      <span class="muted">Required</span>
+    </div>
+    {% set existing_revenue = upload_meta.files.get('revenue') if upload_meta and upload_meta.files else None %}
+    <label>Revenue File
+      <span class="help-tip" data-tooltip="Upload the main file that contains the date column and the target you want to forecast. If a revenue file is already attached to this run, you can leave this blank and the app will reuse it.">?</span>
+      <input type="file" name="revenue_file" accept=".csv,.xlsx,.xls,.parquet" {% if not existing_revenue %}required{% endif %}>
+    </label>
+    {% if existing_revenue %}
+    <div class="inline-actions" style="margin-top:0.5rem;">
+      <p class="muted" style="margin:0;">✔ Using existing revenue file: <strong>{{ existing_revenue.filename }}</strong>. Upload a new file only if you want to replace it.</p>
+      <button type="submit" form="delete-upload-revenue" class="button button-secondary" onclick="return confirm('Delete the current revenue file from this run?');">Delete File</button>
+    </div>
+    {% else %}
+    <p class="muted">Default supported source is CSV, but Excel and Parquet are also available.</p>
+    {% endif %}
+  </section>
+
+  <section class="upload-group">
+    <div class="card-header">
+      <h2>Optional helper files <span class="help-tip" data-tooltip="Helper files improve the forecast when important drivers like leads or ad spend are stored outside the main revenue file.">?</span></h2>
+      <span class="muted">Add only what you have</span>
+    </div>
+    <div class="grid two">
+      {% set existing_leads = upload_meta.files.get('leads') if upload_meta and upload_meta.files else None %}
+      <label>Leads File
+        <span class="help-tip" data-tooltip="Use this when leads are stored in a separate file.">?</span>
+        <input type="file" name="leads_file" accept=".csv,.xlsx,.xls,.parquet">
+        {% if existing_leads %}
+        <div class="inline-actions top-gap">
+          <span class="muted">Current: <strong>{{ existing_leads.filename }}</strong></span>
+          <button type="submit" form="delete-upload-leads" class="button button-secondary" onclick="return confirm('Delete the current leads file from this run?');">Delete File</button>
+        </div>
+        {% endif %}
+      </label>
+      {% set existing_cost = upload_meta.files.get('cost') if upload_meta and upload_meta.files else None %}
+      <label>Cost / Spend File
+        <span class="help-tip" data-tooltip="Upload ad cost or marketing spend here.">?</span>
+        <input type="file" name="cost_file" accept=".csv,.xlsx,.xls,.parquet">
+        {% if existing_cost %}
+        <div class="inline-actions top-gap">
+          <span class="muted">Current: <strong>{{ existing_cost.filename }}</strong></span>
+          <button type="submit" form="delete-upload-cost" class="button button-secondary" onclick="return confirm('Delete the current cost file from this run?');">Delete File</button>
+        </div>
+        {% endif %}
+      </label>
+      {% set existing_events = upload_meta.files.get('events') if upload_meta and upload_meta.files else None %}
+      <label>Events / Holidays File
+        <span class="help-tip" data-tooltip="Use for promotions, outages, holiday calendars, or notable events.">?</span>
+        <input type="file" name="events_file" accept=".csv,.xlsx,.xls,.parquet">
+        {% if existing_events %}
+        <div class="inline-actions top-gap">
+          <span class="muted">Current: <strong>{{ existing_events.filename }}</strong></span>
+          <button type="submit" form="delete-upload-events" class="button button-secondary" onclick="return confirm('Delete the current events file from this run?');">Delete File</button>
+        </div>
+        {% endif %}
+      </label>
+      {% set existing_cohort = upload_meta.files.get('cohort_revenue') if upload_meta and upload_meta.files else None %}
+      <label>Lead-Month Cohort Revenue File
+        <span class="help-tip" data-tooltip="Optional. Upload a lead-month by transaction-month revenue file to analyze cohort payback and cohort ROAS by month, platform, or source.">?</span>
+        <input type="file" name="cohort_revenue_file" accept=".csv,.xlsx,.xls,.parquet">
+        {% if existing_cohort %}
+        <div class="inline-actions top-gap">
+          <span class="muted">Current: <strong>{{ existing_cohort.filename }}</strong></span>
+          <button type="submit" form="delete-upload-cohort_revenue" class="button button-secondary" onclick="return confirm('Delete the current cohort revenue file from this run?');">Delete File</button>
+        </div>
+        {% endif %}
+      </label>
+    </div>
+  </section>
+
+  <section class="upload-group">
+    <div class="card-header">
+      <h2>Custom Sheets</h2>
+      <span class="muted">Optional — add as many as you need</span>
+    </div>
+    <p class="muted" style="margin-bottom:0.8rem;">Use these for any additional data you want to map as regressors — web traffic, ad impressions, pricing, registrations, or any custom KPI. Each file gets its own mapping section on the next page.</p>
+
+    <div id="custom-sheets-list">
+      <!-- existing custom sheets from a previous upload -->
+      {% for key, meta in (upload_meta.files.items() if upload_meta and upload_meta.files else []) %}
+        {% if key.startswith('custom_') %}
+        <div class="custom-sheet-row" style="display:flex;align-items:center;gap:0.8rem;margin-bottom:0.6rem;" data-key="{{ key }}">
+          <div style="flex:1;">
+            <label style="display:block;font-size:0.85rem;color:#8b949e;margin-bottom:2px;">
+              Label (how it appears in mapping)
+            </label>
+            <input type="text" name="{{ key }}_label"
+                   value="{{ meta.label or key.replace('custom_','Custom ') }}"
+                   placeholder="e.g. Web Traffic"
+                   style="width:100%;margin-bottom:0.4rem;">
+            <label style="display:block;font-size:0.85rem;color:#8b949e;margin-bottom:2px;">
+              File <span class="muted">(leave blank to keep existing: {{ meta.filename }})</span>
+            </label>
+            <input type="file" name="{{ key }}_file" accept=".csv,.xlsx,.xls,.parquet">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.5rem;justify-content:flex-start;">
+            <button type="submit" form="delete-upload-{{ key }}" class="button button-secondary" onclick="return confirm('Delete this custom sheet from the run?');">Delete File</button>
+            <button type="button" class="remove-custom-sheet" style="background:none;border:none;color:#e05050;cursor:pointer;font-size:1.2rem;padding:4px 8px;" title="Remove this unsaved row">✕</button>
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <button type="button" id="add-custom-sheet" class="button button-secondary" style="margin-top:0.4rem;">
+      + Add Custom Sheet
+    </button>
+  </section>
+
+  {% if upload_meta and upload_meta.files %}
+  <section class="upload-group">
+    <div class="card-header"><h2>Files already attached to this run</h2></div>
+    <ul class="simple-list">
+      {% for key, meta in upload_meta.files.items() %}
+      <li>
+        <div class="inline-actions" style="justify-content:space-between;width:100%;">
+          <span><strong>{{ (meta.label or key).replace('_', ' ').title() }}</strong> · {{ meta.filename }}</span>
+          <button type="submit" form="delete-upload-{{ key }}" class="button button-secondary" onclick="return confirm('Delete this file from the run?');">Delete</button>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  <div class="button-row top-gap">
+    <button class="button" type="submit" data-loader-button="true">Save and Continue
+      <span class="help-tip" data-tooltip="Saves your files and moves you to column mapping.">?</span>
+    </button>
+  </div>
+</form>
+
+{% if upload_meta and upload_meta.files %}
+  {% for key, meta in upload_meta.files.items() %}
+  <form id="delete-upload-{{ key }}" method="post" action="/projects/{{ project.id }}/upload/delete-file" style="display:none;">
+    <input type="hidden" name="run_id" value="{{ run.id }}">
+    <input type="hidden" name="file_key" value="{{ key }}">
+  </form>
+  {% endfor %}
+{% endif %}
+
+<script>
+(function(){
+  const list = document.getElementById('custom-sheets-list');
+  const addBtn = document.getElementById('add-custom-sheet');
+
+  // Find highest existing index so new ones don't clash
+  function nextIndex() {
+    let max = 0;
+    list.querySelectorAll('[data-key]').forEach(row => {
+      const m = row.dataset.key.match(/custom_(\d+)/);
+      if (m) max = Math.max(max, parseInt(m[1]));
+    });
+    // also scan input names for dynamically added ones
+    list.querySelectorAll('input[name$="_label"]').forEach(inp => {
+      const m = inp.name.match(/custom_(\d+)/);
+      if (m) max = Math.max(max, parseInt(m[1]));
+    });
+    return max + 1;
+  }
+
+  addBtn.addEventListener('click', () => {
+    const idx = nextIndex();
+    const key = `custom_${idx}`;
+    const row = document.createElement('div');
+    row.className = 'custom-sheet-row';
+    row.dataset.key = key;
+    row.style.cssText = 'display:flex;align-items:flex-start;gap:0.8rem;margin-bottom:0.6rem;';
+    row.innerHTML = `
+      <div style="flex:1;">
+        <label style="display:block;font-size:0.85rem;color:#8b949e;margin-bottom:2px;">Label (how it appears in mapping)</label>
+        <input type="text" name="${key}_label" placeholder="e.g. Web Traffic, Ad Impressions"
+               style="width:100%;margin-bottom:0.4rem;" required>
+        <label style="display:block;font-size:0.85rem;color:#8b949e;margin-bottom:2px;">File</label>
+        <input type="file" name="${key}_file" accept=".csv,.xlsx,.xls,.parquet" required>
+      </div>
+      <button type="button" class="remove-custom-sheet"
+              style="background:none;border:none;color:#e05050;cursor:pointer;font-size:1.2rem;padding:4px 8px;margin-top:1.6rem;"
+              title="Remove this sheet">✕</button>
+    `;
+    list.appendChild(row);
+    row.querySelector('.remove-custom-sheet').addEventListener('click', () => row.remove());
+  });
+
+  // Wire up existing remove buttons
+  list.querySelectorAll('.remove-custom-sheet').forEach(btn => {
+    btn.addEventListener('click', () => btn.closest('.custom-sheet-row').remove());
+  });
+})();
+</script>
+{% endblock %}

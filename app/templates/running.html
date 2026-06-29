@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+{% block title %}Running Forecast{% endblock %}
+{% block tip_group %}running{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>Running Forecast</h1>
+  <p>Stay on this page while the engine builds and compares the models.</p>
+</div>
+
+<section class="card progress-shell" data-progress-url="/api/projects/{{ project_id }}/progress?run_id={{ run_id }}" data-result-url="/projects/{{ project_id }}/results?run_id={{ run_id }}">
+  <div class="progress-meta">
+    <div>
+      <div class="eyebrow">Current Step</div>
+      <h2 id="progress-step">Queued</h2>
+      <p class="muted" id="progress-detail">Preparing your forecast job.</p>
+    </div>
+    <div class="progress-number" id="progress-percent">0%</div>
+  </div>
+  <div class="progress-track" aria-hidden="true">
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+  </div>
+  <div class="grid three progress-cards">
+    <div class="card stat-card">
+      <span class="stat-label">Status</span>
+      <div class="stat-value" id="progress-status">Queued</div>
+    </div>
+    <div class="card stat-card">
+      <span class="stat-label">Updated</span>
+      <div class="stat-value progress-mini" id="progress-updated">—</div>
+    </div>
+    <div class="card stat-card">
+      <span class="stat-label">Result</span>
+      <div class="stat-value progress-mini" id="progress-result">Waiting</div>
+    </div>
+  </div>
+  <div class="progress-message" id="progress-message"></div>
+  <noscript>
+    <p class="muted">JavaScript is required to update progress automatically. Refresh this page manually to check status.</p>
+  </noscript>
+</section>
+
+<section class="card top-gap" id="activity-section">
+  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+    <h2 style="margin:0;">Engine Activity Log</h2>
+    <div style="display:flex;align-items:center;gap:0.8rem;">
+      <span id="log-pulse" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#3fb950;box-shadow:0 0 6px #3fb950;animation:logpulse 1.4s infinite;"></span>
+      <span class="muted" style="font-size:0.82rem;" id="log-count">0 events</span>
+      <button type="button" id="log-autoscroll-btn" style="font-size:0.78rem;padding:2px 10px;border-radius:4px;border:1px solid #3a4a6a;background:#1a2540;color:#aac4ff;cursor:pointer;">Auto-scroll: ON</button>
+    </div>
+  </div>
+  <p class="muted" style="font-size:0.82rem;margin:0.4rem 0 0.6rem;">Live output from the forecast engine — each line is a real event emitted by the backend as models are loaded, trained, and evaluated.</p>
+  <div id="model-activity" class="model-activity-grid"></div>
+  <div id="activity-log" style="font-family:'Courier New',Courier,monospace;font-size:0.82rem;line-height:1.65;background:#0d1117;color:#c9d1d9;border-radius:8px;padding:1rem 1.2rem;height:340px;overflow-y:auto;border:1px solid #2a3a5a;">
+    <div class="log-line log-boot" id="log-boot">[boot] Forecast engine initialising…</div>
+  </div>
+</section>
+
+<style>
+@keyframes logpulse { 0%,100%{opacity:1}50%{opacity:.25} }
+@keyframes logfadein { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
+.log-line   { animation:logfadein .22s ease; white-space:pre-wrap; word-break:break-word; padding:1px 0; }
+.log-boot   { color:#4a5568; font-style:italic; }
+.log-step   { color:#58a6ff; font-weight:bold; }
+.log-detail { color:#8b949e; }
+.log-ok     { color:#3fb950; }
+.log-warn   { color:#d29922; }
+.log-error  { color:#f85149; }
+.log-ts     { color:#4a5568; margin-right:.45rem; user-select:none; }
+.log-pct    { color:#bf91f3; margin-right:.3rem; }
+.model-activity-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:0.85rem; margin:0 0 0.9rem; align-items:stretch; }
+.model-activity-card { position:relative; overflow:hidden; background:#111827; border:1px solid #2a3a5a; border-radius:10px; padding:1rem; color:#dbe4f0; box-shadow:0 12px 28px rgba(0,0,0,.16); min-width:0; }
+.model-activity-card::before { content:""; position:absolute; left:0; right:0; top:0; height:4px; background:#64748b; }
+.model-activity-card--running::before { background:#38bdf8; box-shadow:0 0 18px rgba(56,189,248,.65); }
+.model-activity-card--completed::before { background:#22c55e; box-shadow:0 0 18px rgba(34,197,94,.55); }
+.model-activity-card--failed::before,
+.model-activity-card--skipped::before { background:#ef4444; box-shadow:0 0 18px rgba(239,68,68,.55); }
+.model-activity-card--partial::before { background:#f59e0b; box-shadow:0 0 18px rgba(245,158,11,.5); }
+.model-activity-card--queued::before { background:#a78bfa; box-shadow:0 0 18px rgba(167,139,250,.45); }
+.model-activity-header { display:flex; align-items:flex-start; justify-content:space-between; gap:0.75rem; margin-bottom:0.58rem; }
+.model-activity-title { min-width:0; font-weight:800; color:#f3f4f6; line-height:1.18; font-size:1rem; }
+.model-activity-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.model-activity-meta { font-size:0.8rem; color:#9fb0c8; margin-bottom:0.46rem; line-height:1.42; }
+.model-activity-meta-row { display:flex; align-items:center; justify-content:space-between; gap:0.75rem; margin-bottom:0.55rem; }
+.model-activity-models { display:grid; grid-template-columns:auto minmax(0,1fr); gap:0.4rem; font-size:0.8rem; color:#9fb0c8; line-height:1.42; margin-bottom:0.75rem; }
+.model-activity-models strong { color:#d8e3f4; font-weight:800; }
+.model-activity-model-list { min-width:0; color:#c6d2e3; overflow-wrap:anywhere; }
+.model-activity-models + .model-activity-meta { display:none; }
+.model-activity-status { display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-weight:800; letter-spacing:.01em; text-transform:capitalize; border:1px solid rgba(148,163,184,.35); background:rgba(148,163,184,.12); color:#e5e7eb; }
+.model-activity-status--running { color:#7dd3fc; background:rgba(14,165,233,.18); border-color:rgba(56,189,248,.42); }
+.model-activity-status--completed { color:#86efac; background:rgba(34,197,94,.18); border-color:rgba(34,197,94,.42); }
+.model-activity-status--failed,
+.model-activity-status--skipped { color:#fca5a5; background:rgba(239,68,68,.18); border-color:rgba(239,68,68,.42); }
+.model-activity-status--partial { color:#fcd34d; background:rgba(245,158,11,.18); border-color:rgba(245,158,11,.42); }
+.model-activity-status--queued { color:#c4b5fd; background:rgba(124,58,237,.18); border-color:rgba(167,139,250,.42); }
+.model-activity-note { font-size:0.77rem; color:#c6d2e3; line-height:1.45; margin:0 0 0.45rem; }
+.model-activity-error { font-size:0.75rem; color:#ffb4ad; line-height:1.4; margin:0 0 0.5rem; padding:0.45rem 0.55rem; border-radius:8px; background:rgba(248,81,73,.10); border:1px solid rgba(248,81,73,.18); }
+.model-activity-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0.55rem; font-size:0.76rem; }
+.model-activity-pill { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; font-size:0.7rem; padding:2px 8px; border-radius:999px; border:1px solid #37517a; color:#9cc1ff; background:rgba(29,78,216,.12); }
+.model-activity-stat { min-width:0; min-height:58px; padding:0.55rem 0.62rem; border-radius:8px; background:rgba(15,23,42,.88); border:1px solid rgba(148,163,184,.18); }
+.model-activity-stat strong { display:block; font-size:1.35rem; line-height:1.05; color:#f8fafc; text-shadow:0 0 14px rgba(248,250,252,.18); }
+.model-activity-stat span { display:block; margin-top:0.34rem; color:#d8e3f4; font-weight:800; white-space:normal; overflow-wrap:break-word; }
+.model-activity-stat--running { background:rgba(14,165,233,.14); border-color:rgba(56,189,248,.32); }
+.model-activity-stat--running strong { color:#7dd3fc; }
+.model-activity-stat--completed { background:rgba(34,197,94,.14); border-color:rgba(34,197,94,.32); }
+.model-activity-stat--completed strong { color:#86efac; }
+.model-activity-stat--failed { background:rgba(239,68,68,.14); border-color:rgba(239,68,68,.32); }
+.model-activity-stat--failed strong { color:#fca5a5; }
+.model-activity-stat--queued { background:rgba(124,58,237,.14); border-color:rgba(167,139,250,.32); }
+.model-activity-stat--queued strong { color:#c4b5fd; }
+@media (max-width: 720px) {
+  .model-activity-grid { grid-template-columns:1fr; }
+  .model-activity-card { padding:0.95rem; }
+}
+@media (max-width: 420px) {
+  .model-activity-stats { grid-template-columns:1fr; }
+  .model-activity-meta-row { align-items:flex-start; flex-direction:column; gap:0.45rem; }
+}
+</style>
+
+<script>
+function parseServerTime(value){
+  if(!value) return null;
+  const hasZone = /Z$|[+-]\d\d:\d\d$/.test(value);
+  return new Date(hasZone ? value : `${value}Z`);
+}
+
+(function(){
+  const shell = document.querySelector('[data-progress-url]');
+  if (!shell) return;
+  const progressUrl = shell.dataset.progressUrl;
+  const resultUrl   = shell.dataset.resultUrl;
+  const stepEl    = document.getElementById('progress-step');
+  const detailEl  = document.getElementById('progress-detail');
+  const percentEl = document.getElementById('progress-percent');
+  const barEl     = document.getElementById('progress-bar');
+  const statusEl  = document.getElementById('progress-status');
+  const updatedEl = document.getElementById('progress-updated');
+  const resultEl  = document.getElementById('progress-result');
+  const messageEl = document.getElementById('progress-message');
+  const logEl     = document.getElementById('activity-log');
+  const pulseEl   = document.getElementById('log-pulse');
+  const countEl   = document.getElementById('log-count');
+  const scrollBtn = document.getElementById('log-autoscroll-btn');
+  const activityEl = document.getElementById('model-activity');
+
+  let autoScroll = true;
+  scrollBtn.addEventListener('click', () => {
+    autoScroll = !autoScroll;
+    scrollBtn.textContent = 'Auto-scroll: ' + (autoScroll ? 'ON' : 'OFF');
+    scrollBtn.style.color = autoScroll ? '#aac4ff' : '#6a7a9a';
+  });
+  logEl.addEventListener('scroll', () => {
+    if (logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight > 40 && autoScroll) {
+      autoScroll = false;
+      scrollBtn.textContent = 'Auto-scroll: OFF';
+      scrollBtn.style.color = '#6a7a9a';
+    }
+  });
+
+  let seenCount = 0;
+
+  const ICONS = {
+    'preparing':'⚙', 'building':'🔧', 'baseline':'📐',
+    'statsforecast':'📊', 'prophet':'🔮', 'lightgbm':'🌲', 'random forest':'🌳', 'random_forest':'🌳',
+    'ranking':'🏆', 'formatting':'📋', 'completed':'✅',
+    'failed':'❌', 'skipped':'⏭', 'queued':'⏳',
+    'starting':'🚀', 'normaliz':'🔢', 'sanity':'🛡',
+  };
+  function icon(step) {
+    const s = (step||'').toLowerCase();
+    for (const [k,v] of Object.entries(ICONS)) if (s.includes(k)) return v;
+    return '›';
+  }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function attrEsc(s){ return esc(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+  function ts(isoStr){
+    try { return new Date(isoStr).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+    catch(_){ return ''; }
+  }
+  function addLine(cls, html){
+    const d = document.createElement('div');
+    d.className = 'log-line ' + cls;
+    d.innerHTML = html;
+    logEl.appendChild(d);
+    if (autoScroll) logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function renderLog(entries){
+    if (!entries || !entries.length) return;
+    const fresh = entries.slice(seenCount);
+    if (!fresh.length) return;
+    fresh.forEach(e => {
+      const stepLc = (e.step||'').toLowerCase();
+      const cls = stepLc.includes('fail')||stepLc.includes('error') ? 'log-error'
+                : stepLc.includes('skip') ? 'log-warn'
+                : stepLc.includes('complet') ? 'log-ok'
+                : 'log-step';
+      const timeSpan   = `<span class="log-ts">[${ts(e.ts)}]</span>`;
+      const pctSpan    = e.percent != null ? `<span class="log-pct">[${e.percent}%]</span>` : '';
+      addLine(cls, `${timeSpan}${pctSpan}${icon(e.step)} ${esc(e.step||'')}`);
+      if (e.detail && e.detail !== e.step) {
+        addLine('log-detail', `&nbsp;&nbsp;&nbsp;└─ ${esc(e.detail)}`);
+      }
+    });
+    seenCount = entries.length;
+    countEl.textContent = seenCount + ' event' + (seenCount !== 1 ? 's' : '');
+  }
+
+  function renderModelActivity(modelActivity){
+    if (!activityEl) return;
+    const items = modelActivity ? Object.values(modelActivity) : [];
+    if (!items.length){
+      activityEl.innerHTML = '';
+      return;
+    }
+    activityEl.innerHTML = items.map(item => {
+      const label = esc(item.label || item.family || 'Model');
+      const statusRaw = String(item.status || 'queued').toLowerCase().replace(/\s+/g, '_');
+      const statusClass = statusRaw.includes('fail') ? 'failed'
+                        : statusRaw.includes('skip') ? 'skipped'
+                        : statusRaw.includes('partial') ? 'partial'
+                        : statusRaw.includes('complete') ? 'completed'
+                        : statusRaw.includes('running') ? 'running'
+                        : 'queued';
+      const status = esc(statusRaw.replace(/_/g, ' '));
+      const device = item.device ? `<span class="model-activity-pill">${esc(String(item.device).toUpperCase())}</span>` : '';
+      const modelsTitle = attrEsc(Array.isArray(item.models) && item.models.length ? item.models.join(', ') : 'No models reported yet');
+      const labelTitle = attrEsc(item.label || item.family || 'Model');
+      const models = Array.isArray(item.models) && item.models.length ? esc(item.models.join(', ')) : '—';
+      return `<div class="model-activity-card model-activity-card--${statusClass}">
+        <div class="model-activity-header">
+          <div class="model-activity-title"><span class="model-activity-name" title="${labelTitle}">${label}</span></div>
+          ${device}
+        </div>
+        <div class="model-activity-meta-row">
+          <div class="model-activity-meta" style="margin:0;">Status: <span class="model-activity-status model-activity-status--${statusClass}">${status}</span></div>
+          <div class="model-activity-meta" style="margin:0;">Sessions: <strong>${Number(item.session_total||0)}</strong></div>
+        </div>
+        <div class="model-activity-models" title="${modelsTitle}">
+          <strong>Models:</strong>
+          <span class="model-activity-model-list">${models}</span>
+        </div>
+        <div class="model-activity-meta">Sessions: ${Number(item.session_total||0)} • Models: ${models}</div>
+        <div class="model-activity-stats">
+          <div class="model-activity-stat model-activity-stat--running"><strong>${Number(item.running||0)}</strong><span>Running</span></div>
+          <div class="model-activity-stat model-activity-stat--completed"><strong>${Number(item.completed||0)}</strong><span>Completed</span></div>
+          <div class="model-activity-stat model-activity-stat--failed"><strong>${Number(item.failed||0)}</strong><span>Failed</span></div>
+          <div class="model-activity-stat model-activity-stat--queued"><strong>${Number(item.queued||0)}</strong><span>Queued</span></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  let resultsRedirectStarted = false;
+
+  function showTransitionLoader(title, text){
+    if (typeof showForgeLoader === 'function') {
+      showForgeLoader({
+        title: title || 'Opening results',
+        text: text || 'SignalForge is preparing your dashboards, charts, and diagnostics.',
+        phase: 'Launching dashboard',
+        activeStep: 2,
+        progressPercent: 96,
+        finishLine: true
+      });
+    }
+  }
+
+  function openResultsWithFeedback(target){
+    if (resultsRedirectStarted) return;
+    resultsRedirectStarted = true;
+    showTransitionLoader(
+      'Results forged',
+      'Your charts, intelligence panels, and exports are ready.'
+    );
+    if (typeof updateForgeLoaderProgress === 'function') {
+      window.setTimeout(() => updateForgeLoaderProgress(100), 120);
+    }
+    messageEl.innerHTML = '<div class="status-ok">Forecast complete. Preparing your results workspace…</div>';
+    resultEl.textContent = 'Opening';
+    addLine('log-ok', `<span class="log-ts">[${new Date().toLocaleTimeString()}]</span> 🚪 <strong>Opening the results workspace…</strong>`);
+    window.setTimeout(() => {
+      window.location.href = target + (target.includes('?') ? '&' : '?') + '_ts=' + Date.now();
+    }, 1450);
+  }
+
+  function render(state){
+    const pct = Number(state.percent||0);
+    stepEl.textContent   = state.step   || 'Working';
+    detailEl.textContent = state.detail || '';
+    percentEl.textContent= pct + '%';
+    barEl.style.width    = pct + '%';
+    statusEl.textContent = (state.status||'queued').replace(/_/g,' ');
+    updatedEl.textContent= state.updated_at ? parseServerTime(state.updated_at).toLocaleTimeString([], {hour:'numeric', minute:'2-digit', second:'2-digit'}) : '—';
+    renderLog(state.log || []);
+    renderModelActivity(state.model_activity || {});
+
+    if (state.status === 'completed'){
+      resultEl.textContent = 'Ready';
+      messageEl.innerHTML  = '<div class="status-ok">Forecast complete. Opening results…</div>';
+      pulseEl.style.cssText= 'display:inline-block;width:9px;height:9px;border-radius:50%;background:#3fb950;box-shadow:0 0 6px #3fb950;';
+      addLine('log-ok', `<span class="log-ts">[${new Date().toLocaleTimeString()}]</span> ✅ <strong>All done — loading results…</strong>`);
+      openResultsWithFeedback(state.result_url || resultUrl);
+      return true;
+    }
+    if (state.status === 'failed'){
+      resultEl.textContent = 'Failed';
+      messageEl.innerHTML  = `<div class="status-error">${esc(state.error||'The run failed.')}</div>`;
+      pulseEl.style.cssText= 'display:inline-block;width:9px;height:9px;border-radius:50%;background:#f85149;box-shadow:0 0 6px #f85149;';
+      addLine('log-error', `<span class="log-ts">[${new Date().toLocaleTimeString()}]</span> ❌ ${esc(state.error||'Unknown error')}`);
+      return true;
+    }
+    resultEl.textContent = 'Processing';
+    messageEl.innerHTML  = '<div class="status-warn">The page updates automatically while your models run.</div>';
+    return false;
+  }
+
+  async function poll(){
+    try {
+      const r = await fetch(progressUrl, {cache:'no-store'});
+      const s = await r.json();
+      if (!render(s)) setTimeout(poll, 1000);
+    } catch(_){
+      messageEl.innerHTML = '<div class="status-error">Could not reach server — retrying…</div>';
+      addLine('log-warn', `<span class="log-ts">[${new Date().toLocaleTimeString()}]</span> ⚠ Poll error, retrying…`);
+      setTimeout(poll, 2000);
+    }
+  }
+  poll();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+{% block title %}Data Quality<style>
+.flow-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}.flow-step{display:flex;align-items:center;gap:.65rem;padding:.8rem 1rem;border-radius:14px;border:1px solid rgba(120,140,190,.18);background:rgba(24,32,56,.55)}.flow-step span{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:rgba(125,145,210,.18);font-weight:700}.flow-step.is-complete{border-color:rgba(63,185,80,.35)}.flow-step.is-complete span{background:rgba(34,197,94,.2);color:#baf7c8}.flow-step.is-active{border-color:rgba(72,171,224,.38);box-shadow:0 10px 24px rgba(59,130,246,.12)}.button-primary-green{background:linear-gradient(135deg,#22c55e,#16a34a)!important;border-color:rgba(44,191,96,.55)!important;color:#fff!important;box-shadow:0 10px 24px rgba(34,197,94,.16)}.button-primary-green:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(34,197,94,.24)}
+</style>
+{% endblock %}
+{% block tip_group %}quality<style>
+.flow-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}.flow-step{display:flex;align-items:center;gap:.65rem;padding:.8rem 1rem;border-radius:14px;border:1px solid rgba(120,140,190,.18);background:rgba(24,32,56,.55)}.flow-step span{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:rgba(125,145,210,.18);font-weight:700}.flow-step.is-complete{border-color:rgba(63,185,80,.35)}.flow-step.is-complete span{background:rgba(34,197,94,.2);color:#baf7c8}.flow-step.is-active{border-color:rgba(72,171,224,.38);box-shadow:0 10px 24px rgba(59,130,246,.12)}.button-primary-green{background:linear-gradient(135deg,#22c55e,#16a34a)!important;border-color:rgba(44,191,96,.55)!important;color:#fff!important;box-shadow:0 10px 24px rgba(34,197,94,.16)}.button-primary-green:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(34,197,94,.24)}
+</style>
+{% endblock %}
+{% block content %}
+
+<section class="card explainer-card">
+  <div class="card-header"><h2>Why quality checks matter <span class="help-tip" data-tooltip-key="quality_page">?</span></h2></div>
+  <p class="muted">Use this page to verify that the merged modeling table looks reasonable. If a helper file is too coarse, too sparse, or mapped incorrectly, it is better to catch it here than after training.</p>
+</section>
+
+<div class="page-header">
+  <h1>Data Quality & Input Visuals</h1>
+  <p>Auto-detected checks for your mapped columns plus charts to verify the merged modeling table.</p>
+</div>
+
+<div class="button-row top-gap-sm">
+  <a class="button button-secondary" href="/projects/{{ project_id }}/data-model?run_id={{ run_id }}">Open Data Model Viewer</a>
+</div>
+
+<section class="card top-gap">
+  <div class="card-header"><h2>Flow Progress</h2></div>
+  <div class="flow-steps">
+    <div class="flow-step is-complete"><span>1</span><strong>Upload</strong></div>
+    <div class="flow-step is-complete"><span>2</span><strong>Map</strong></div>
+    <div class="flow-step is-active"><span>3</span><strong>Validate</strong></div>
+    <div class="flow-step"><span>4</span><strong>Forecast</strong></div>
+  </div>
+</section>
+{% if quality_guidance %}
+<section class="card top-gap">
+  <div class="card-header"><h2>Smart Guidance</h2></div>
+  <div class="stack-list">
+    {% for item in quality_guidance %}
+    <div class="insight-pill{% if item.level == 'warning' %} highlight{% endif %}">
+      <strong>{{ item.title }}</strong><br>{{ item.body }}<br><span class="muted">{{ item.action }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% if auto_fix_summary and auto_fix_summary.sources_processed %}
+<section class="card top-gap">
+  <div class="card-header"><h2>Auto-Fixes Applied</h2></div>
+  <p class="muted">G052a safely cleaned mapped inputs before the forecast stage. SignalForge keeps working copies for each mapped source so recent uploads can move straight into forecasting with less manual cleanup.</p>
+  <div class="grid four stats-grid">
+    <section class="card stat-card"><span class="stat-label">Sources Processed</span><strong class="stat-value">{{ auto_fix_summary.sources_processed }}</strong></section>
+    <section class="card stat-card"><span class="stat-label">Fixes Applied</span><strong class="stat-value">{{ auto_fix_summary.fixes_applied_count }}</strong></section>
+    <section class="card stat-card"><span class="stat-label">Rows Before</span><strong class="stat-value">{{ auto_fix_summary.rows_before_total }}</strong></section>
+    <section class="card stat-card"><span class="stat-label">Rows After</span><strong class="stat-value">{{ auto_fix_summary.rows_after_total }}</strong></section>
+  </div>
+  <div class="grid two top-gap">
+    {% for source_key, info in auto_fix_summary.sources.items() %}
+    <section class="card section-card">
+      <div class="card-header"><h2>{{ (info.dataset_names or [info.file_key])|join(', ')|replace('_', ' ')|title }}</h2></div>
+      <p class="muted">Source: <strong>{{ info.file_key }}</strong>{% if info.sheet_name %} · Sheet: <strong>{{ info.sheet_name }}</strong>{% endif %}</p>
+      <p><strong>Rows:</strong> {{ info.rows_before or 0 }} → {{ info.rows_after or 0 }}</p>
+      <ul style="margin:0.5rem 0 0 1rem;">
+        {% for fix in info.applied_fixes %}
+          {% set amount = fix.rows_removed if fix.rows_removed is defined else (fix.values_replaced if fix.values_replaced is defined else (fix.columns_count if fix.columns_count is defined else (fix.values_touched if fix.values_touched is defined else (fix.rows_affected if fix.rows_affected is defined else fix.columns_changed if fix.columns_changed is defined else 0)))) %}
+          <li>{{ fix.action.replace('_', ' ').title() }}{% if amount %} — {{ amount }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% if build_error %}
+<section class="card">
+  <div class="card-header"><h2>There is a problem with the merged modeling table <span class="help-tip" data-tooltip="This message usually means the mapped files could not be aligned into one clean table. Check dates, numeric columns, and fill methods first.">?</span></h2></div>
+  <p class="muted">The app could not combine the mapped datasets yet.</p>
+  <p><strong>Error:</strong> {{ build_error }}</p>
+  <p class="muted">Common causes: the revenue date column and helper date columns use different formats, the mapped value column is not numeric, or the Target Column was accidentally mapped to a date/timestamp field instead of revenue.</p>
+  <a class="button" href="/projects/{{ project_id }}/map?run_id={{ run_id }}">Back to Mapping</a>
+</section>
+{% endif %}
+
+{% if dataset_info %}
+<section class="card top-gap">
+  <div class="card-header"><h2>Helper Dataset Resolution <span class="help-tip" data-tooltip="This shows how each helper dataset was expanded or aligned to your main revenue series. Review it whenever helper files use weekly or monthly granularity.">?</span></h2></div>
+  <p class="muted" style="font-size:0.85rem;">Shows how each helper dataset was matched to your revenue series. If the helper data is coarser than daily revenue, the app expands it using the fill method selected during mapping.</p>
+  <table class="coverage-report-table">
+    <thead>
+      <tr>
+        <th>Dataset</th>
+        <th>Columns</th>
+        <th>Helper Frequency</th>
+        <th>Revenue Frequency</th>
+        <th>Fill Method</th>
+        <th>Action Taken</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for info in dataset_info %}
+      <tr>
+        <td><strong>{{ info.label }}</strong></td>
+        <td class="muted" style="font-size:0.82rem;">{{ info.value_cols|join(', ') or '—' }}</td>
+        <td>{{ info.resolved_freq }}</td>
+        <td>{{ info.revenue_freq }}</td>
+        <td>{{ info.fill_method }}</td>
+        <td>
+          {% if info.resampled %}
+            <span class="coverage-status coverage-status--ok">Expanded to {{ info.revenue_freq|lower }}</span>
+          {% else %}
+            <span class="coverage-status coverage-status--neutral">No expansion needed</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="muted" style="font-size:0.8rem;margin-top:0.6rem;">
+    To change the fill method, go back to <a href="/projects/{{ project_id }}/map?run_id={{ run_id }}">Mapping</a> and update the Data Frequency or Mismatch Fill Method for that dataset.
+  </p>
+</section>
+{% endif %}
+
+<section class="card top-gap connection-map-card">
+  <div class="card-header"><h2>Data Connections</h2></div>
+  <p class="muted">This area shows how SignalForge is pairing files before forecasting so you can visually confirm the funnel and the join keys being used.</p>
+  <div class="connection-flow top-gap">
+    {% for node in connection_nodes %}
+      <div class="connection-node {{ 'enabled' if node.enabled else 'disabled' }}">
+        <strong>{{ node.label }}</strong>
+        <span>{{ node.detail }}</span>
+      </div>
+      {% if not loop.last %}
+      <div class="connection-arrow">→</div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <div class="grid three compact-grid top-gap">
+    {% for badge in connection_badges %}
+    <div class="card" style="padding:0.85rem 1rem;">
+      <div class="muted" style="font-size:0.78rem;">{{ badge.label }}</div>
+      <strong>{{ badge.value }}</strong>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="card top-gap">
+  <div class="card-header"><h2>Training Window Anchor</h2></div>
+  <p class="muted">SignalForge now anchors preset windows to the last day of actual uploaded data, not today’s calendar date.</p>
+  <div class="grid four stats-grid">
+    <section class="card stat-card"><span class="stat-label">Actual Data Start</span><strong class="stat-value">{{ training_window_context.actual_data_start or 'n/a' }}</strong></section>
+    <section class="card stat-card"><span class="stat-label">Actual Data End</span><strong class="stat-value">{{ training_window_context.actual_data_end or 'n/a' }}</strong></section>
+    <section class="card stat-card"><span class="stat-label">Last 90 Window End</span><strong class="stat-value">{{ training_window_context.preset_ranges.last_90_days.end if training_window_context.preset_ranges and training_window_context.preset_ranges.last_90_days else 'n/a' }}</strong></section>
+    <section class="card stat-card"><span class="stat-label">Last 180 Window End</span><strong class="stat-value">{{ training_window_context.preset_ranges.last_180_days.end if training_window_context.preset_ranges and training_window_context.preset_ranges.last_180_days else 'n/a' }}</strong></section>
+  </div>
+</section>
+
+<section class="card top-gap">
+  <div class="card-header"><h2>Data Controls</h2></div>
+  <div class="grid three compact-grid">
+    <label>Chart Search<input type="text" id="chart-search" placeholder="Filter chart titles"></label>
+    <label>Chart Height
+      <select id="chart-height">
+        <option value="320">Compact</option>
+        <option value="420" selected>Standard</option>
+        <option value="560">Tall</option>
+      </select>
+    </label>
+    <div class="button-row"><button type="button" class="button button-secondary" id="expand-all-charts">Refresh layout</button></div>
+  </div>
+  <p class="muted">Use these controls to make the exploratory visuals easier to scan before you run a forecast.</p>
+</section>
+
+<div class="grid four stats-grid">
+  {% for key, value in report.items() %}
+  <section class="card stat-card">
+    <span class="stat-label">{{ key.replace('_', ' ').title() }}</span>
+    <strong class="stat-value">{{ value }}</strong>
+  </section>
+  {% endfor %}
+</div>
+
+
+{% if series_audit %}
+<section class="card top-gap">
+  <div class="card-header"><h2>Merged Series Audit</h2></div>
+  <p class="muted">B078 adds a forecast-scope audit so you can see whether the app is about to model one clean daily series or a grouped series. This is the last checkpoint before training.</p>
+  <div class="grid four stats-grid">
+    <div class="card stat-card"><span class="stat-label">Forecast Scope</span><strong class="stat-value">{{ forecast_category or 'company_total' }}</strong></div>
+    <div class="card stat-card"><span class="stat-label">Raw Rows</span><strong class="stat-value">{{ series_audit.raw_rows }}</strong></div>
+    <div class="card stat-card"><span class="stat-label">Raw Distinct Dates</span><strong class="stat-value">{{ series_audit.raw_distinct_dates }}</strong></div>
+    <div class="card stat-card"><span class="stat-label">Raw Duplicate Date Rows</span><strong class="stat-value">{{ series_audit.raw_duplicate_date_rows }}</strong></div>
+    <div class="card stat-card"><span class="stat-label">Final Daily Rows</span><strong class="stat-value">{{ series_audit.final_rows }}</strong></div>
+    <div class="card stat-card"><span class="stat-label">Final Distinct Dates</span><strong class="stat-value">{{ series_audit.final_distinct_dates }}</strong></div>
+    <div class="card stat-card"><span class="stat-label">Final Total Y</span><strong class="stat-value">{{ series_audit.final_total_y }}</strong></div>
+    <div class="card stat-card"><span class="stat-label">Final Max Daily Y</span><strong class="stat-value">{{ series_audit.final_max_y }}</strong></div>
+  </div>
+  <p class="muted" style="font-size:0.82rem;margin-top:0.75rem;">If Raw Duplicate Date Rows is high, that is fine for detailed revenue. What matters is that the final daily rollup is clean before modeling.</p>
+</section>
+{% endif %}
+
+<section class="card top-gap">
+  <div class="card-header"><h2>What is currently mapped</h2></div>
+  <div class="grid two">
+    <div>
+      <p><strong>Date:</strong> {{ mapping.date_column }}</p>
+      <p><strong>Target:</strong> {{ mapping.target_column }}</p>
+      <p><strong>Platform / rollup:</strong> {{ mapping.platform_column or mapping.category_column or 'Company total only' }}</p>
+      <p><strong>Affiliate ID:</strong> {{ mapping.affiliate_id_column or 'Not mapped' }}</p>
+      <p><strong>Campaign ID:</strong> {{ mapping.campaign_id_column or 'Not mapped' }}</p>
+      <p><strong>Ads ID:</strong> {{ mapping.ad_id_column or 'Not mapped' }}</p>
+      <p><strong>Profile ID:</strong> {{ mapping.profile_id_column or 'Not mapped' }}</p>
+    </div>
+    <div>
+      <p><strong>Leads:</strong> {{ mapping.leads.value_column if mapping.leads else (mapping.leads_column or 'Not mapped') }}{% if mapping.leads and mapping.leads.sheet_name %} <span class='muted'>(sheet: {{ mapping.leads.sheet_name }})</span>{% endif %}</p>
+      <p><strong>Cost:</strong> {{ mapping.cost.value_column if mapping.cost else (mapping.cost_column or 'Not mapped') }}{% if mapping.cost and mapping.cost.sheet_name %} <span class='muted'>(sheet: {{ mapping.cost.sheet_name }})</span>{% endif %}</p>
+      <p><strong>Lead platform:</strong> {{ mapping.leads.platform_column if mapping.leads else 'Not mapped' }}</p>
+      <p><strong>Cost platform:</strong> {{ mapping.cost.platform_column if mapping.cost else 'Not mapped' }}</p>
+    </div>
+  </div>
+</section>
+
+<div class="grid two top-gap">
+  {% for chart in visuals.charts %}
+  <section class="card chart-card">
+    <div class="card-header"><h2>{{ chart.title }}</h2></div>
+    {% if chart.subtitle %}<p class="muted">{{ chart.subtitle }}</p>{% endif %}
+    <div class="chart-shell" data-plotly-spec='{{ chart.spec|safe }}' id="{{ chart.id }}"></div>
+  </section>
+  {% endfor %}
+</div>
+
+<section class="card top-gap">
+  <div class="card-header"><div><h2>Merged Modeling Table Preview</h2><p class="muted">Showing the last 30 days of merged daily modeling data.</p></div><input id="preview-table-search" type="text" placeholder="Filter merged rows" class="table-filter"></div>
+  <div class="table-scroll table-scroll-preview">
+    <table data-filter-table="preview-table-search">
+      <thead>
+        {% if visuals.table_preview and visuals.table_preview[0] %}
+          <tr>{% for key in visuals.table_preview[0].keys() %}<th>{{ key }}</th>{% endfor %}</tr>
+        {% endif %}
+      </thead>
+      <tbody>
+        {% for row in visuals.table_preview %}
+          <tr>{% for val in row.values() %}<td>{{ val }}</td>{% endfor %}</tr>
+        {% else %}
+          <tr><td>No merged data available yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card top-gap">
+  <div class="card-header"><h2>Manual Adjustments</h2><span class="help-tip" data-tooltip="Exclude date ranges, tag outages, promo periods, and force holiday effects before forecasting.">?</span></div>
+  <p class="muted">Version 1 scaffold saves these adjustments at the run level so the training setup area can evolve into a full override layer without losing business context.</p>
+  <form method="post" action="/projects/{{ project_id }}/manual-adjustments?run_id={{ run_id }}">
+    <input type="hidden" name="run_id" value="{{ run_id }}">
+    <div class="grid two top-gap">
+      <section class="card section-card">
+        <div class="card-header"><h2>Exclude Date Ranges</h2></div>
+        {% set excluded = manual_adjustments.excluded_ranges if manual_adjustments and manual_adjustments.excluded_ranges else [{'start':'','end':'','label':''},{'start':'','end':'','label':''}] %}
+        {% for row in excluded[:2] %}
+        <div class="grid three compact-grid" style="margin-bottom:0.65rem;">
+          <label>Start<input type="date" name="excluded_start" value="{{ row.start or '' }}"></label>
+          <label>End<input type="date" name="excluded_end" value="{{ row.end or '' }}"></label>
+          <label>Reason<input type="text" name="excluded_reason" value="{{ row.label or '' }}" placeholder="Tracking outage"></label>
+        </div>
+        {% endfor %}
+      </section>
+      <section class="card section-card">
+        <div class="card-header"><h2>Tag Outage Periods</h2></div>
+        {% set outages = manual_adjustments.outages if manual_adjustments and manual_adjustments.outages else [{'start':'','end':'','label':''}] %}
+        {% for row in outages[:2] %}
+        <div class="grid three compact-grid" style="margin-bottom:0.65rem;">
+          <label>Start<input type="date" name="outage_start" value="{{ row.start or '' }}"></label>
+          <label>End<input type="date" name="outage_end" value="{{ row.end or '' }}"></label>
+          <label>Label<input type="text" name="outage_label" value="{{ row.label or '' }}" placeholder="Billing outage"></label>
+        </div>
+        {% endfor %}
+      </section>
+      <section class="card section-card">
+        <div class="card-header"><h2>Tag Promo Periods</h2></div>
+        {% set promos = manual_adjustments.promos if manual_adjustments and manual_adjustments.promos else [{'start':'','end':'','label':''}] %}
+        {% for row in promos[:2] %}
+        <div class="grid three compact-grid" style="margin-bottom:0.65rem;">
+          <label>Start<input type="date" name="promo_start" value="{{ row.start or '' }}"></label>
+          <label>End<input type="date" name="promo_end" value="{{ row.end or '' }}"></label>
+          <label>Label<input type="text" name="promo_label" value="{{ row.label or '' }}" placeholder="Valentine promo"></label>
+        </div>
+        {% endfor %}
+      </section>
+      <section class="card section-card">
+        <div class="card-header"><h2>Force Holiday Effects</h2></div>
+        {% set holidays = manual_adjustments.forced_holidays if manual_adjustments and manual_adjustments.forced_holidays else [{'date':'','label':''}] %}
+        {% for row in holidays[:2] %}
+        <div class="grid two compact-grid" style="margin-bottom:0.65rem;">
+          <label>Date<input type="date" name="forced_holiday_date" value="{{ row.date or '' }}"></label>
+          <label>Label<input type="text" name="forced_holiday_label" value="{{ row.label or '' }}" placeholder="Black Friday"></label>
+        </div>
+        {% endfor %}
+      </section>
+    </div>
+    <label class="top-gap">Notes
+      <textarea name="adjustment_notes" rows="3" placeholder="Capture why these adjustments matter for this run.">{{ manual_adjustments.notes if manual_adjustments else '' }}</textarea>
+    </label>
+    <div class="button-row top-gap">
+      <button class="button" type="submit">Save Manual Adjustments</button>
+      <a class="button button-primary-green" href="/projects/{{ project_id }}/forecast?run_id={{ run_id }}">Continue to Forecast Setup →</a>
+    </div>
+  </form>
+</section>
+
+<style>
+.connection-flow{display:flex;flex-wrap:wrap;align-items:center;gap:.65rem}
+.connection-node{min-width:140px;padding:.85rem 1rem;border-radius:14px;border:1px solid color-mix(in srgb, var(--border) 78%, var(--accent) 22%);background:linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, white 4%), color-mix(in srgb, var(--panel-2) 94%, black 6%));display:flex;flex-direction:column;gap:.25rem;box-shadow:0 10px 24px rgba(15,23,42,.08)}
+.connection-node strong{font-size:.95rem;color:var(--text)}
+.connection-node span{font-size:.8rem;color:var(--text-soft)}
+.connection-node.disabled{opacity:.9;filter:none;background:linear-gradient(180deg, color-mix(in srgb, var(--panel) 92%, transparent), color-mix(in srgb, var(--panel-2) 90%, transparent));border-style:dashed}
+.connection-node.enabled{box-shadow:0 10px 26px color-mix(in srgb, var(--accent) 12%, transparent);border-color:color-mix(in srgb, var(--accent) 34%, var(--border) 66%)}
+.connection-arrow{font-size:1.35rem;color:var(--text-soft);font-weight:700}
+.coverage-status{display:inline-flex;align-items:center;justify-content:center;padding:7px 14px;border-radius:999px;border:1px solid var(--border);font-size:.9rem;font-weight:900;line-height:1.15;letter-spacing:-.01em;min-height:34px;text-shadow:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.28)}
+.coverage-status--ok{background:#d7f8e3;color:#0f7a43;border-color:#95ddb5}
+.coverage-status--neutral{background:#ffe5b5;color:#9a5c00;border-color:#efc16a}
+.coverage-report-table th{font-size:1rem;font-weight:800;color:var(--text-strong)}
+.coverage-report-table td{font-size:1rem;line-height:1.45;color:var(--text-strong)}
+.coverage-report-table td .muted{font-size:.92rem;color:var(--text)}
+html[data-theme="ada-dark"] .coverage-status--ok,
+html[data-theme="dark"] .coverage-status--ok,
+html[data-theme="chaos-black"] .coverage-status--ok,
+html[data-theme="stellar"] .coverage-status--ok,
+html[data-theme="forest"] .coverage-status--ok,
+html[data-theme="sunset"] .coverage-status--ok,
+html[data-theme="microsoft"] .coverage-status--ok,
+html[data-theme="qlik"] .coverage-status--ok{background:rgba(43,181,52,.18);color:#b7f1bc;border-color:rgba(43,181,52,.34)}
+html[data-theme="ada-dark"] .coverage-status--neutral,
+html[data-theme="dark"] .coverage-status--neutral,
+html[data-theme="chaos-black"] .coverage-status--neutral,
+html[data-theme="stellar"] .coverage-status--neutral,
+html[data-theme="forest"] .coverage-status--neutral,
+html[data-theme="sunset"] .coverage-status--neutral,
+html[data-theme="microsoft"] .coverage-status--neutral,
+html[data-theme="qlik"] .coverage-status--neutral{background:rgba(255,179,71,.18);color:#ffd38b;border-color:rgba(255,179,71,.34)}
+</style>
+<style>
+.flow-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}.flow-step{display:flex;align-items:center;gap:.65rem;padding:.8rem 1rem;border-radius:14px;border:1px solid rgba(120,140,190,.18);background:rgba(24,32,56,.55)}.flow-step span{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:rgba(125,145,210,.18);font-weight:700}.flow-step.is-complete{border-color:rgba(63,185,80,.35)}.flow-step.is-complete span{background:rgba(34,197,94,.2);color:#baf7c8}.flow-step.is-active{border-color:rgba(72,171,224,.38);box-shadow:0 10px 24px rgba(59,130,246,.12)}.button-primary-green{background:linear-gradient(135deg,#22c55e,#16a34a)!important;border-color:rgba(44,191,96,.55)!important;color:#fff!important;box-shadow:0 10px 24px rgba(34,197,94,.16)}.button-primary-green:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(34,197,94,.24)}
+</style>
+{% endblock %}

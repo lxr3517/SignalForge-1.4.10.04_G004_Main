@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+{% block title %}Data Model Viewer{% endblock %}
+{% block tip_group %}mapping{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>Data Model Viewer</h1>
+  <p>Inspect how uploaded files, mapped fields, helper datasets, and the final modeling table connect before forecasting.</p>
+</div>
+
+<section class="card top-gap">
+  <div class="card-header">
+    <h2>Model Lineage</h2>
+  </div>
+  <p class="muted">This view is inspired by Qlik-style data model browsing: source tables on the left, association logic in the middle, and the final modeling table on the right.</p>
+  <div class="button-row top-gap-sm">
+    {% if has_results %}
+    <a class="button button-secondary" href="/projects/{{ project_id }}/results?run_id={{ run_id }}">Back to Results</a>
+    {% else %}
+    <a class="button button-secondary" href="/projects/{{ project_id }}/map?run_id={{ run_id }}">Back to Mapping</a>
+    {% endif %}
+    <a class="button button-secondary" href="/projects/{{ project_id }}/quality?run_id={{ run_id }}">Open Quality Checks</a>
+    <a class="button" href="/projects/{{ project_id }}/forecast?run_id={{ run_id }}">Continue to Forecast</a>
+  </div>
+</section>
+
+{% if build_error %}
+<section class="card top-gap">
+  <div class="card-header"><h2>Model Build Warning</h2></div>
+  <div class="status-error">SignalForge could not assemble the final modeling table yet: {{ build_error }}</div>
+  <p class="muted top-gap-sm">The source-table lineage below is still available, but the final model-table preview will stay limited until the mapping issue is fixed.</p>
+</section>
+{% endif %}
+
+<section class="card top-gap model-viewer-shell">
+  <div class="card-header">
+    <h2>Association Canvas</h2>
+  </div>
+  <div class="model-viewer" id="data-model-viewer">
+    <svg class="model-viewer__lines" id="data-model-lines" aria-hidden="true"></svg>
+
+    <div class="model-viewer__column">
+      <div class="model-viewer__column-title">Source Tables</div>
+      {% for node in dataset_nodes %}
+      <article class="model-card model-card--{{ node.kind }}" id="{{ node.id }}" data-node-card="true">
+        <div class="model-card__top">
+          <div>
+            <div class="model-card__eyebrow">{{ node.kind|replace('_', ' ')|title }}</div>
+            <h3>{{ node.label }}</h3>
+          </div>
+          {% if node.is_primary %}
+          <span class="model-card__badge">Primary</span>
+          {% endif %}
+        </div>
+        <div class="model-card__meta">{{ node.file_label }}{% if node.sheet_name %} · {{ node.sheet_name }}{% endif %}</div>
+        <div class="model-card__stats">
+          <span><strong>{{ node.row_count }}</strong> rows</span>
+          <span><strong>{{ node.column_count }}</strong> cols</span>
+        </div>
+        {% if node.mapped_fields %}
+        <div class="model-card__section">
+          <div class="model-card__section-title">Mapped Fields</div>
+          <div class="model-chip-list">
+            {% for field in node.mapped_fields %}
+            <span class="model-chip"><strong>{{ field.label }}:</strong> {{ field.value }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% if node.helper_frequency or node.fill_method %}
+        <div class="model-card__section">
+          <div class="model-card__section-title">Alignment Rules</div>
+          <div class="model-chip-list">
+            {% if node.helper_frequency %}<span class="model-chip">Freq: {{ node.helper_frequency }}</span>{% endif %}
+            {% if node.fill_method %}<span class="model-chip">Fill: {{ node.fill_method|replace('_', ' ')|title }}</span>{% endif %}
+          </div>
+        </div>
+        {% endif %}
+        {% if node.columns_preview %}
+        <div class="model-card__section">
+          <div class="model-card__section-title">Columns</div>
+          <div class="model-chip-list">
+            {% for col in node.columns_preview %}
+            <span class="model-chip">{{ col }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </div>
+
+    <div class="model-viewer__hub">
+      <article class="model-hub-card" id="association-hub" data-node-card="true">
+        <div class="model-card__eyebrow">Association Hub</div>
+        <h3>{{ association_hub.label }}</h3>
+        <p class="muted">{{ association_hub.summary }}</p>
+        <div class="model-card__section">
+          <div class="model-card__section-title">Shared Join Logic</div>
+          <div class="model-chip-list">
+            {% for key in association_hub['keys'] %}
+            <span class="model-chip">{{ key }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="model-card__section">
+          <div class="model-card__section-title">Relationships</div>
+          <div class="model-relation-list">
+            {% for rel in relationships %}
+            <div class="model-relation-item">
+              <strong>{{ rel.join_keys|join(' + ') }}</strong>
+              <span>{{ rel.note }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="model-viewer__column model-viewer__column--target">
+      <div class="model-viewer__column-title">Final Table</div>
+      <article class="model-card model-card--final" id="{{ model_node.id }}" data-node-card="true">
+        <div class="model-card__top">
+          <div>
+            <div class="model-card__eyebrow">Training Output</div>
+            <h3>{{ model_node.label }}</h3>
+          </div>
+          <span class="model-card__badge">Forecast-ready</span>
+        </div>
+        <div class="model-card__stats">
+          <span><strong>{{ model_node.row_count }}</strong> rows</span>
+          <span><strong>{{ model_node.column_count }}</strong> cols</span>
+        </div>
+        <div class="model-card__section">
+          <div class="model-card__section-title">Core Fields</div>
+          <div class="model-chip-list">
+            <span class="model-chip"><strong>Date:</strong> {{ model_node.date_column }}</span>
+            <span class="model-chip"><strong>Target:</strong> {{ model_node.target_column }}</span>
+          </div>
+        </div>
+        {% if model_node.regressor_columns %}
+        <div class="model-card__section">
+          <div class="model-card__section-title">Resolved Regressors</div>
+          <div class="model-chip-list">
+            {% for col in model_node.regressor_columns %}
+            <span class="model-chip">{{ col }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% if model_node.columns_preview %}
+        <div class="model-card__section">
+          <div class="model-card__section-title">Preview Columns</div>
+          <div class="model-chip-list">
+            {% for col in model_node.columns_preview %}
+            <span class="model-chip">{{ col }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </article>
+    </div>
+  </div>
+</section>
+
+<style>
+.model-viewer-shell { overflow: hidden; }
+.model-viewer {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(280px, 1.25fr) minmax(260px, 0.9fr) minmax(280px, 1.1fr);
+  gap: 1.1rem;
+  align-items: start;
+  padding: 0.35rem 0;
+}
+.model-viewer__lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.model-viewer__column,
+.model-viewer__hub {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.9rem;
+}
+.model-viewer__column-title {
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-left: 0.1rem;
+}
+.model-card,
+.model-hub-card {
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--border) 78%, var(--accent) 22%);
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 12%, transparent), transparent 40%),
+    linear-gradient(180deg, color-mix(in srgb, var(--panel) 96%, white 4%), color-mix(in srgb, var(--panel-2) 94%, black 6%));
+  box-shadow: 0 18px 36px rgba(0,0,0,0.10);
+  padding: 1rem 1rem 0.95rem;
+}
+.model-card--primary { border-color: color-mix(in srgb, var(--accent) 42%, var(--border) 58%); }
+.model-card--final { border-color: color-mix(in srgb, var(--accent-2) 36%, var(--border) 64%); }
+.model-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: flex-start;
+  margin-bottom: 0.4rem;
+}
+.model-card__eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.24rem;
+}
+.model-card h3,
+.model-hub-card h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.model-card__badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.36rem 0.68rem;
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--border));
+  color: var(--text);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.model-card__meta {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin-bottom: 0.55rem;
+}
+.model-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 0.72rem;
+}
+.model-card__stats span {
+  border-radius: 999px;
+  padding: 0.38rem 0.68rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-soft) 84%, var(--panel) 16%);
+  font-size: 0.78rem;
+}
+.model-card__section + .model-card__section { margin-top: 0.72rem; }
+.model-card__section-title {
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.42rem;
+}
+.model-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.model-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.38rem 0.62rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-input) 92%, var(--panel) 8%);
+  border: 1px solid color-mix(in srgb, var(--border) 74%, var(--accent) 26%);
+  color: var(--text);
+  font-size: 0.78rem;
+}
+.model-hub-card { position: sticky; top: 18px; }
+.model-relation-list {
+  display: grid;
+  gap: 0.55rem;
+}
+.model-relation-item {
+  padding: 0.7rem 0.78rem;
+  border-radius: 14px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 24%, var(--border));
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.model-relation-item strong {
+  display: block;
+  margin-bottom: 0.18rem;
+}
+.model-relation-item span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+.model-link {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 50%, var(--border) 50%);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 6 7;
+  opacity: 0.78;
+}
+@media (max-width: 1100px) {
+  .model-viewer { grid-template-columns: 1fr; }
+  .model-hub-card { position: relative; top: auto; }
+  .model-viewer__lines { display: none; }
+}
+</style>
+
+<script>
+(function(){
+  const root = document.getElementById('data-model-viewer');
+  const svg = document.getElementById('data-model-lines');
+  if (!root || !svg || window.innerWidth < 1100) return;
+
+  function drawLines(){
+    const rootRect = root.getBoundingClientRect();
+    svg.setAttribute('viewBox', `0 0 ${Math.max(1, rootRect.width)} ${Math.max(1, rootRect.height)}`);
+    svg.innerHTML = '';
+    const hub = document.getElementById('association-hub');
+    const model = document.getElementById('model-table');
+    if (!hub || !model) return;
+    const hubRect = hub.getBoundingClientRect();
+    const modelRect = model.getBoundingClientRect();
+    document.querySelectorAll('.model-viewer__column:first-child [data-node-card="true"]').forEach((node) => {
+      if (!node.id || node.id === 'model-table') return;
+      const nodeRect = node.getBoundingClientRect();
+      const startX = nodeRect.right - rootRect.left;
+      const startY = nodeRect.top - rootRect.top + (nodeRect.height / 2);
+      const endX = hubRect.left - rootRect.left;
+      const endY = hubRect.top - rootRect.top + (hubRect.height / 2);
+      const midX = startX + ((endX - startX) * 0.45);
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('class', 'model-link');
+      path.setAttribute('d', `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`);
+      svg.appendChild(path);
+    });
+    const startX = hubRect.right - rootRect.left;
+    const startY = hubRect.top - rootRect.top + (hubRect.height / 2);
+    const endX = modelRect.left - rootRect.left;
+    const endY = modelRect.top - rootRect.top + (modelRect.height / 2);
+    const midX = startX + ((endX - startX) * 0.45);
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('class', 'model-link');
+    path.setAttribute('d', `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`);
+    svg.appendChild(path);
+  }
+
+  window.addEventListener('resize', drawLines);
+  window.setTimeout(drawLines, 80);
+})();
+</script>
+
+{% endblock %}

@@ -1,0 +1,125 @@
+
+{% extends 'base.html' %}
+{% block title %}Compare Runs{% endblock %}
+{% block content %}
+
+<section class="card explainer-card">
+  <div class="card-header"><h2>What comparison tells you <span class="help-tip" data-tooltip="Comparing runs helps you see whether changes in inputs, mappings, settings, or model selection actually improved the forecast.">?</span></h2></div>
+  <p class="muted">Use run comparison to understand whether a new setup produced a better forecast, a more stable forecast, or just a different one. This is one of the best ways to learn what settings really help.</p>
+</section>
+
+<div class="page-header">
+  <h1>Side-by-Side Run Comparison</h1>
+  <p>Compare two completed runs to see how settings, model rankings, and forecast paths changed.</p>
+</div>
+
+<section class="card">
+  <div class="card-header"><h2>Select Runs <span class="help-tip" data-tooltip="Choose two completed runs to compare forecast shape, best model, ranking shifts, and whether a new setup improved planning usefulness.">?</span></h2></div>
+  <form method="get" action="/runs/compare" class="grid two">
+    <label>Left Run
+      <select name="left_run_id">
+        <option value="">Choose a run</option>
+        {% for run in runs %}
+          <option value="{{ run.id }}" {% if left_run_id == run.id %}selected{% endif %}>Run {{ run.id }} · Project {{ run.project_id }} · {{ run.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Right Run
+      <select name="right_run_id">
+        <option value="">Choose a run</option>
+        {% for run in runs %}
+          <option value="{{ run.id }}" {% if right_run_id == run.id %}selected{% endif %}>Run {{ run.id }} · Project {{ run.project_id }} · {{ run.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="button-row">
+      <button type="submit" class="button">Compare Runs</button>
+    </div>
+  </form>
+  <p class="muted">Pick any two completed runs, even from different projects, to compare settings, chart shapes, and model outcomes side by side.</p>
+</section>
+
+{% if compare_error %}
+<section class="card top-gap">
+  <div class="status-error">{{ compare_error }}</div>
+</section>
+{% endif %}
+
+{% if left_summary and right_summary %}
+<div class="grid two top-gap">
+  <section class="card">
+    <div class="card-header"><h2>Left Run Summary <span class="help-tip" data-tooltip="This panel summarizes the baseline run. Compare its best model, score, and shape to the run on the right.">?</span></h2></div>
+    <p><strong>Project:</strong> {{ left_summary.project_name }}</p>
+    <p><strong>Run:</strong> {{ left_summary.run_label }} (#{{ left_summary.run_id }})</p>
+    <p><strong>Status:</strong> {{ left_summary.status }}</p>
+    <p><strong>Best model:</strong> {{ left_summary.best_model }}</p>
+    <p><strong>Best score:</strong> {{ left_summary.best_score if left_summary.best_score is not none else 'n/a' }}</p>
+    <p><strong>Frequency:</strong> {{ left_summary.frequency or 'n/a' }}</p>
+    <p><strong>Horizon:</strong> {{ left_summary.horizon or 'n/a' }}</p>
+    <div class="inline-actions"><a href="/projects/{{ left_run.project_id }}/results?run_id={{ left_run.id }}">Open this run</a></div>
+  </section>
+  <section class="card">
+    <div class="card-header"><h2>Right Run Summary</h2></div>
+    <p><strong>Project:</strong> {{ right_summary.project_name }}</p>
+    <p><strong>Run:</strong> {{ right_summary.run_label }} (#{{ right_summary.run_id }})</p>
+    <p><strong>Status:</strong> {{ right_summary.status }}</p>
+    <p><strong>Best model:</strong> {{ right_summary.best_model }}</p>
+    <p><strong>Best score:</strong> {{ right_summary.best_score if right_summary.best_score is not none else 'n/a' }}</p>
+    <p><strong>Frequency:</strong> {{ right_summary.frequency or 'n/a' }}</p>
+    <p><strong>Horizon:</strong> {{ right_summary.horizon or 'n/a' }}</p>
+    <div class="inline-actions"><a href="/projects/{{ right_run.project_id }}/results?run_id={{ right_run.id }}">Open this run</a></div>
+  </section>
+</div>
+
+<div class="grid two top-gap">
+  {% for chart in visuals.charts %}
+  <section class="card chart-card">
+    <div class="card-header"><h2>{{ chart.title }}</h2></div>
+    {% if chart.subtitle %}<p class="muted">{{ chart.subtitle }}</p>{% endif %}
+    <div class="chart-shell" data-plotly-spec='{{ chart.spec|safe }}' id="{{ chart.id }}"></div>
+  </section>
+  {% endfor %}
+</div>
+
+<section class="card top-gap">
+  <div class="card-header"><h2>Settings Differences</h2></div>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Setting</th><th>Left</th><th>Right</th><th>Changed</th></tr></thead>
+      <tbody>
+      {% for row in visuals.settings_rows %}
+        <tr>
+          <td>{{ row.setting }}</td>
+          <td>{{ row.left }}</td>
+          <td>{{ row.right }}</td>
+          <td>{{ 'Yes' if row.different else 'No' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4">No settings available.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card top-gap">
+  <div class="card-header"><h2>Forecast Delta Table</h2></div>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        {% if visuals.comparison_table and visuals.comparison_table[0] %}
+          <tr>{% for key in visuals.comparison_table[0].keys() %}<th>{{ key }}</th>{% endfor %}</tr>
+        {% endif %}
+      </thead>
+      <tbody>
+      {% for row in visuals.comparison_table %}
+        <tr>{% for value in row.values() %}<td>{{ value }}</td>{% endfor %}</tr>
+      {% else %}
+        <tr><td>No comparison rows available.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,261 @@
+
+{% extends 'base.html' %}
+{% block title %}Column Mapping{% endblock %}
+{% block tip_group %}mapping{% endblock %}
+{% block content %}
+
+<section class="card explainer-card">
+  <div class="card-header"><h2>How mapping works <span class="help-tip" data-tooltip-key="mapping_page">?</span></h2></div>
+  <p class="muted">Use this page to connect each dataset to the right columns. If your helper data is in a different file or sheet, that is fine. The app will align everything into one modeling table before training.</p>
+</section>
+
+<div class="page-header">
+  <h1>Map Your Columns</h1>
+  <p class="muted">You can map each dataset from its own file or sheet. This is where you point leads to the Leads sheet instead of the revenue sheet.</p>
+</div>
+
+
+{% if auto_bound_sections %}
+<section class="card explainer-card" style="border:1px solid var(--border); background:color-mix(in srgb, var(--panel) 88%, var(--accent) 12%);">
+  <div class="card-header"><h2>Smart mapping is active</h2></div>
+  <p class="muted">Files uploaded into their designated slots were already connected below. You only need to review the guessed columns and adjust anything that looks off.</p>
+  <div style="display:flex;flex-wrap:wrap;gap:0.6rem;margin-top:0.8rem;">
+    {% for item in auto_bound_sections %}
+      <span style="padding:0.45rem 0.7rem;border-radius:999px;background:var(--panel-2);border:1px solid var(--border);font-size:0.9rem;">
+        <strong>{{ item.section }}</strong>: {{ item.filename }}
+      </span>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<form class="card form-grid" method="post" action="/projects/{{ project_id }}/map" data-mapping-form="true" data-loader-submit="mapping">
+  <input type="hidden" name="run_id" value="{{ run_id }}">
+
+  <section class="card section-card">
+    <div class="card-header"><h2>Revenue dataset <span class="help-tip" data-tooltip="This section defines the main series the model will forecast. The date and target mappings here are the most important choices on the page.">?</span></h2></div>
+    <div class="grid two">
+      <label>Revenue Source File
+        <span class="help-tip" data-tooltip="Pick the file that contains the main revenue series.">?</span>
+        <select name="revenue_file_key" data-mapping-reload="true">
+          {% for key, label in file_options %}<option value="{{ key }}" {% if revenue.file_key == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Revenue Sheet
+        <span class="help-tip" data-tooltip="If this file is Excel, choose the sheet that contains revenue.">?</span>
+        <select name="revenue_sheet_name" data-mapping-reload="true">
+          <option value="">Default</option>
+          {% for sheet in revenue.sheet_names %}<option value="{{ sheet }}" {% if revenue.sheet_name == sheet %}selected{% endif %}>{{ sheet }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Date Column <span class="help-tip" data-tooltip="Choose the field that represents the true calendar date of each row. If this is wrong, all downstream charts and lags will be wrong too.">?</span><select name="revenue_date_column">{% for col in revenue.columns %}<option value="{{ col }}" {% if mapping.date_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Target Column <span class="help-tip" data-tooltip="This is the number the model is trying to predict, usually revenue. Pick the actual numeric target, not a text field or date field.">?</span><select name="target_column">{% for col in revenue.columns %}<option value="{{ col }}" {% if mapping.target_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Rollup / Category Column <span class="help-tip" data-tooltip="Optional. Use this if you still want a broad rollup field in addition to the granular funnel identifiers below.">?</span><select name="category_column"><option value="">None</option>{% for col in revenue.columns %}<option value="{{ col }}" {% if mapping.category_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Platform Column<select name="platform_column"><option value="">None</option>{% for col in revenue.columns %}<option value="{{ col }}" {% if mapping.platform_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Affiliate ID Column<select name="affiliate_id_column"><option value="">None</option>{% for col in revenue.columns %}<option value="{{ col }}" {% if mapping.affiliate_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Campaign ID Column<select name="campaign_id_column"><option value="">None</option>{% for col in revenue.columns %}<option value="{{ col }}" {% if mapping.campaign_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Ads ID Column<select name="ad_id_column"><option value="">None</option>{% for col in revenue.columns %}<option value="{{ col }}" {% if mapping.ad_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Profile ID Column<select name="profile_id_column"><option value="">None</option>{% for col in revenue.columns %}<option value="{{ col }}" {% if mapping.profile_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Custom Regressor Columns<input type="text" name="custom_regressor_columns" value="{{ (mapping.custom_regressor_columns or [])|join(', ') }}" placeholder="visits, registrations"></label>
+    </div>
+    <p class="muted top-gap-sm">Target Column must be your real revenue field. Do not map the Target Column to the same date field used for Date Column.</p>
+    <div class="table-scroll top-gap">
+      <table>
+        <thead><tr>{% for col in revenue.columns %}<th>{{ col }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for row in revenue.preview %}<tr>{% for col in revenue.columns %}<td>{{ row[col] }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card section-card">
+    <div class="card-header"><h2>Leads dataset</h2><span class="muted">Optional</span></div>
+    <div class="grid two">
+      <label>Leads Source File
+        <span class="help-tip" data-tooltip="This can be a separate leads file or the same Excel workbook as revenue.">?</span>
+        <select name="leads_file_key" data-mapping-reload="true">
+          <option value="">Not used</option>
+          {% for key, label in file_options %}<option value="{{ key }}" {% if leads.file_key == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Leads Sheet
+        <span class="help-tip" data-tooltip="Choose the Leads sheet here if leads are stored on a different tab.">?</span>
+        <select name="leads_sheet_name" data-mapping-reload="true">
+          <option value="">Default</option>
+          {% for sheet in leads.sheet_names %}<option value="{{ sheet }}" {% if leads.sheet_name == sheet %}selected{% endif %}>{{ sheet }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Leads Date Column<select name="leads_date_column"><option value="">Use revenue date column</option>{% for col in leads.columns %}<option value="{{ col }}" {% if leads.date_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Leads Column<select name="leads_column"><option value="">None</option>{% for col in leads.columns %}<option value="{{ col }}" {% if leads.value_column == col or mapping.leads_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Platform Column<select name="leads_platform_column"><option value="">None</option>{% for col in leads.columns %}<option value="{{ col }}" {% if leads.platform_column == col or leads.category_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Affiliate ID Column<select name="leads_affiliate_id_column"><option value="">None</option>{% for col in leads.columns %}<option value="{{ col }}" {% if leads.affiliate_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Campaign ID Column<select name="leads_campaign_id_column"><option value="">None</option>{% for col in leads.columns %}<option value="{{ col }}" {% if leads.campaign_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Ads ID Column<select name="leads_ad_id_column"><option value="">None</option>{% for col in leads.columns %}<option value="{{ col }}" {% if leads.ad_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Data Frequency
+        <span class="help-tip" data-tooltip="What granularity are the leads stored at? If monthly but your revenue is daily, the app will automatically distribute the values across the days in each month.">?</span>
+        <select name="leads_helper_frequency">
+          <option value="auto" {% if (mapping.leads or {}).get('helper_frequency','auto')=='auto' %}selected{% endif %}>Auto-detect</option>
+          <option value="D" {% if (mapping.leads or {}).get('helper_frequency')=='D' %}selected{% endif %}>Daily</option>
+          <option value="W" {% if (mapping.leads or {}).get('helper_frequency')=='W' %}selected{% endif %}>Weekly</option>
+          <option value="M" {% if (mapping.leads or {}).get('helper_frequency')=='M' %}selected{% endif %}>Monthly</option>
+        </select>
+      </label>
+      <label>Mismatch Fill Method
+        <span class="help-tip" data-tooltip="How to fill daily gaps when leads data is coarser. 'Distribute evenly' splits the monthly total across each day. 'Forward-fill' repeats the monthly value on every day. 'Interpolate' smoothly blends between months.">?</span>
+        <select name="leads_fill_method">
+          <option value="distribute" {% if (mapping.leads or {}).get('fill_method','distribute')=='distribute' %}selected{% endif %}>Distribute evenly (recommended for counts)</option>
+          <option value="ffill" {% if (mapping.leads or {}).get('fill_method')=='ffill' %}selected{% endif %}>Forward-fill (repeat value)</option>
+          <option value="interpolate" {% if (mapping.leads or {}).get('fill_method')=='interpolate' %}selected{% endif %}>Interpolate (smooth blend)</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="card section-card">
+    <div class="card-header"><h2>Cost / Spend dataset</h2><span class="muted">Optional</span></div>
+    <div class="grid two">
+      <label>Cost Source File<select name="cost_file_key" data-mapping-reload="true"><option value="">Not used</option>{% for key, label in file_options %}<option value="{{ key }}" {% if cost.file_key == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Cost Sheet<select name="cost_sheet_name" data-mapping-reload="true"><option value="">Default</option>{% for sheet in cost.sheet_names %}<option value="{{ sheet }}" {% if cost.sheet_name == sheet %}selected{% endif %}>{{ sheet }}</option>{% endfor %}</select></label>
+      <label>Cost Date Column<select name="cost_date_column"><option value="">Use revenue date column</option>{% for col in cost.columns %}<option value="{{ col }}" {% if cost.date_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Cost Column<select name="cost_column"><option value="">None</option>{% for col in cost.columns %}<option value="{{ col }}" {% if cost.value_column == col or mapping.cost_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Platform Column<select name="cost_platform_column"><option value="">None</option>{% for col in cost.columns %}<option value="{{ col }}" {% if cost.platform_column == col or cost.category_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Affiliate ID Column<select name="cost_affiliate_id_column"><option value="">None</option>{% for col in cost.columns %}<option value="{{ col }}" {% if cost.affiliate_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Campaign ID Column<select name="cost_campaign_id_column"><option value="">None</option>{% for col in cost.columns %}<option value="{{ col }}" {% if cost.campaign_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Ads ID Column<select name="cost_ad_id_column"><option value="">None</option>{% for col in cost.columns %}<option value="{{ col }}" {% if cost.ad_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Data Frequency
+        <span class="help-tip" data-tooltip="What granularity is the cost data stored at? Monthly cost is treated as the full platform total for that month and is spread across every calendar day in the month.">?</span>
+        <select name="cost_helper_frequency">
+          <option value="auto" {% if (mapping.cost or {}).get('helper_frequency','auto')=='auto' %}selected{% endif %}>Auto-detect</option>
+          <option value="D" {% if (mapping.cost or {}).get('helper_frequency')=='D' %}selected{% endif %}>Daily</option>
+          <option value="W" {% if (mapping.cost or {}).get('helper_frequency')=='W' %}selected{% endif %}>Weekly</option>
+          <option value="M" {% if (mapping.cost or {}).get('helper_frequency')=='M' %}selected{% endif %}>Monthly</option>
+        </select>
+      </label>
+      <label>Mismatch Fill Method
+        <span class="help-tip" data-tooltip="How to fill daily gaps when cost data is coarser. 'Distribute evenly' splits monthly spend across each day in the month — best for ad spend. 'Forward-fill' repeats the monthly value. 'Interpolate' smoothly blends.">?</span>
+        <select name="cost_fill_method">
+          <option value="distribute" {% if (mapping.cost or {}).get('fill_method','distribute')=='distribute' %}selected{% endif %}>Distribute evenly (recommended for spend)</option>
+          <option value="avg_monthly" {% if (mapping.cost or {}).get('fill_method')=='avg_monthly' %}selected{% endif %}>Avg Monthly (smart daily expansion by ad / campaign / platform)</option>
+          <option value="ffill" {% if (mapping.cost or {}).get('fill_method')=='ffill' %}selected{% endif %}>Forward-fill (repeat value)</option>
+          <option value="interpolate" {% if (mapping.cost or {}).get('fill_method')=='interpolate' %}selected{% endif %}>Interpolate (smooth blend)</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="card section-card">
+    <div class="card-header"><h2>Events dataset</h2><span class="muted">Optional</span></div>
+    <div class="grid two">
+      <label>Events Source File<select name="events_file_key" data-mapping-reload="true"><option value="">Not used</option>{% for key, label in file_options %}<option value="{{ key }}" {% if events.file_key == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Events Sheet<select name="events_sheet_name" data-mapping-reload="true"><option value="">Default</option>{% for sheet in events.sheet_names %}<option value="{{ sheet }}" {% if events.sheet_name == sheet %}selected{% endif %}>{{ sheet }}</option>{% endfor %}</select></label>
+      <label>Events Date Column<select name="events_date_column"><option value="">Use revenue date column</option>{% for col in events.columns %}<option value="{{ col }}" {% if events.date_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Event Flag Column<select name="event_flag_column"><option value="">None</option>{% for col in events.columns %}<option value="{{ col }}" {% if events.event_flag_column == col or mapping.event_flag_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Outage Flag Column<select name="outage_flag_column"><option value="">None</option>{% for col in events.columns %}<option value="{{ col }}" {% if events.outage_flag_column == col or mapping.outage_flag_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Events Category Column<select name="events_category_column"><option value="">None</option>{% for col in events.columns %}<option value="{{ col }}" {% if events.category_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+    </div>
+  </section>
+
+
+
+  <section class="card mapping-card">
+    <div class="card-header"><h2>Lead-month cohort revenue dataset</h2><span class="muted">Optional add-on</span></div>
+    <p class="muted" style="margin-bottom:0.8rem;">Use this when you have a cohort matrix file with fields like Lead Month, Transaction Month, Revenue, Platform, Affiliate ID, Campaign ID, and Ads ID. This does not replace the original forecast system — it adds a cohort ROAS lens on the results page.</p>
+    <div class="grid two compact-grid">
+      <label>Cohort Revenue Source File<select name="cohort_revenue_file_key" data-mapping-reload="true"><option value="">Not used</option>{% for key, label in file_options %}<option value="{{ key }}" {% if cohort_revenue.file_key == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Cohort Revenue Sheet<select name="cohort_revenue_sheet_name" data-mapping-reload="true"><option value="">Default</option>{% for sheet in cohort_revenue.sheet_names %}<option value="{{ sheet }}" {% if cohort_revenue.sheet_name == sheet %}selected{% endif %}>{{ sheet }}</option>{% endfor %}</select></label>
+      <label>Lead Month Column<select name="cohort_revenue_lead_month_column"><option value="">None</option>{% for col in cohort_revenue.columns %}<option value="{{ col }}" {% if (mapping.cohort_revenue or {}).get('lead_month_column') == col or cohort_revenue.lead_month_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Transaction Month Column<select name="cohort_revenue_transaction_month_column"><option value="">None</option>{% for col in cohort_revenue.columns %}<option value="{{ col }}" {% if (mapping.cohort_revenue or {}).get('transaction_month_column') == col or cohort_revenue.transaction_month_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Revenue Column<select name="cohort_revenue_value_column"><option value="">None</option>{% for col in cohort_revenue.columns %}<option value="{{ col }}" {% if (mapping.cohort_revenue or {}).get('value_column') == col or cohort_revenue.value_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Platform Column<select name="cohort_revenue_platform_column"><option value="">None</option>{% for col in cohort_revenue.columns %}<option value="{{ col }}" {% if (mapping.cohort_revenue or {}).get('platform_column') == col or cohort_revenue.platform_column == col or cohort_revenue.category_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Affiliate ID Column<select name="cohort_revenue_affiliate_id_column"><option value="">None</option>{% for col in cohort_revenue.columns %}<option value="{{ col }}" {% if (mapping.cohort_revenue or {}).get('affiliate_id_column') == col or cohort_revenue.affiliate_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Campaign ID Column<select name="cohort_revenue_campaign_id_column"><option value="">None</option>{% for col in cohort_revenue.columns %}<option value="{{ col }}" {% if (mapping.cohort_revenue or {}).get('campaign_id_column') == col or cohort_revenue.campaign_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+      <label>Ads ID Column<select name="cohort_revenue_ad_id_column"><option value="">None</option>{% for col in cohort_revenue.columns %}<option value="{{ col }}" {% if (mapping.cohort_revenue or {}).get('ad_id_column') == col or cohort_revenue.ad_id_column == col %}selected{% endif %}>{{ col }}</option>{% endfor %}</select></label>
+    </div>
+    {% if cohort_revenue.columns %}
+    <div class="table-scroll top-gap">
+      <table>
+        <thead><tr>{% for col in cohort_revenue.columns %}<th>{{ col }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for row in cohort_revenue.preview %}<tr>{% for col in cohort_revenue.columns %}<td>{{ row[col] }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+
+  {% for sheet_key, sheet_cfg in custom_sheet_cfgs.items() %}
+  <section class="card section-card">
+    <div class="card-header">
+      <h2>{{ sheet_cfg.label }}</h2>
+      <span class="muted">Custom Sheet · {{ sheet_key }}</span>
+    </div>
+    <p class="muted" style="font-size:0.85rem;margin-bottom:0.8rem;">Map the columns from this custom sheet. Value columns will be joined to the revenue series by date and passed to all ML models as regressors.</p>
+    <div class="grid two">
+      <label>Source File
+        <select name="{{ sheet_key }}_file_key" data-mapping-reload="true">
+          {% for key, label in file_options %}<option value="{{ key }}" {% if sheet_cfg.file_key == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Sheet
+        <select name="{{ sheet_key }}_sheet_name" data-mapping-reload="true">
+          <option value="">Default</option>
+          {% for sheet in sheet_cfg.sheet_names %}<option value="{{ sheet }}" {% if sheet_cfg.sheet_name == sheet %}selected{% endif %}>{{ sheet }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Date Column
+        <select name="{{ sheet_key }}_date_column">
+          <option value="">Use revenue date column</option>
+          {% for col in sheet_cfg.columns %}<option value="{{ col }}" {% if (mapping.get(sheet_key) or {}).get('date_column') == col %}selected{% endif %}>{{ col }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Category / Group Column
+        <select name="{{ sheet_key }}_category_column">
+          <option value="">None</option>
+          {% for col in sheet_cfg.columns %}<option value="{{ col }}" {% if (mapping.get(sheet_key) or {}).get('category_column') == col %}selected{% endif %}>{{ col }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Data Frequency
+        <span class="help-tip" data-tooltip="What granularity is this data stored at? If coarser than your revenue, the app will expand it to match.">?</span>
+        <select name="{{ sheet_key }}_helper_frequency">
+          <option value="auto" {% if (mapping.get(sheet_key) or {}).get('helper_frequency','auto')=='auto' %}selected{% endif %}>Auto-detect</option>
+          <option value="D" {% if (mapping.get(sheet_key) or {}).get('helper_frequency')=='D' %}selected{% endif %}>Daily</option>
+          <option value="W" {% if (mapping.get(sheet_key) or {}).get('helper_frequency')=='W' %}selected{% endif %}>Weekly</option>
+          <option value="M" {% if (mapping.get(sheet_key) or {}).get('helper_frequency')=='M' %}selected{% endif %}>Monthly</option>
+        </select>
+      </label>
+      <label>Mismatch Fill Method
+        <span class="help-tip" data-tooltip="How to fill gaps when this dataset is coarser than your revenue data.">?</span>
+        <select name="{{ sheet_key }}_fill_method">
+          <option value="distribute" {% if (mapping.get(sheet_key) or {}).get('fill_method','distribute')=='distribute' %}selected{% endif %}>Distribute evenly</option>
+          <option value="ffill" {% if (mapping.get(sheet_key) or {}).get('fill_method')=='ffill' %}selected{% endif %}>Forward-fill (repeat value)</option>
+          <option value="interpolate" {% if (mapping.get(sheet_key) or {}).get('fill_method')=='interpolate' %}selected{% endif %}>Interpolate (smooth blend)</option>
+        </select>
+      </label>
+    </div>
+    <label style="display:block;margin-top:0.8rem;">
+      Regressor Value Columns
+      <span class="help-tip" data-tooltip="Column names from this sheet to use as regressors, comma-separated.">?</span>
+      <input type="text" name="{{ sheet_key }}_value_columns"
+             value="{{ (mapping.get(sheet_key) or {}).get('value_columns', [])|join(', ') }}"
+             placeholder="e.g. sessions, impressions"
+             style="width:100%;">
+    </label>
+    {% if sheet_cfg.columns %}
+    <div class="table-scroll top-gap">
+      <p class="muted" style="font-size:0.82rem;">Columns available in this sheet:</p>
+      <table>
+        <thead><tr>{% for col in sheet_cfg.columns %}<th>{{ col }}</th>{% endfor %}</tr></thead>
+        <tbody>{% for row in sheet_cfg.preview %}<tr>{% for col in sheet_cfg.columns %}<td>{{ row[col] }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+  {% endfor %}
+
+  <div class="button-row top-gap">
+    <a class="button button-secondary" href="/projects/{{ project_id }}/upload?run_id={{ run_id }}">Back to Upload Your Data</a>
+    <button class="button" type="submit" data-loader-button="true">Start Mapping</button>
+  </div>
+</form>
+
+<div class="card top-gap">
+  <p class="muted">Tip: if your workbook has tabs like <strong>Revenue</strong>, <strong>Leads</strong>, and <strong>Cost</strong>, you can use the same uploaded file in multiple sections and choose a different sheet in each one.</p>
+</div>
+{% endblock %}

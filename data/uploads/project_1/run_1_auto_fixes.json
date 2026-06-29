@@ -1,0 +1,224 @@
+{
+  "fixes_applied_count": 13,
+  "sources_processed": 4,
+  "rows_before_total": 66474,
+  "rows_after_total": 66473,
+  "sources": {
+    "revenue|__default__": {
+      "status": "ok",
+      "file_key": "revenue",
+      "sheet_name": null,
+      "dataset_names": [
+        "revenue"
+      ],
+      "rows_before": 26914,
+      "rows_after": 26914,
+      "applied_fixes": [
+        {
+          "action": "trim_headers",
+          "columns_changed": 0
+        },
+        {
+          "action": "standardize_null_tokens",
+          "values_replaced": 0
+        },
+        {
+          "action": "drop_blank_rows",
+          "rows_removed": 0
+        },
+        {
+          "action": "remove_exact_duplicates",
+          "rows_removed": 0
+        },
+        {
+          "action": "parse_numeric_columns",
+          "columns": [
+            {
+              "column": "Revenue",
+              "non_null_after": 26914
+            }
+          ],
+          "columns_count": 1
+        },
+        {
+          "action": "trim_object_values",
+          "values_touched": 0
+        },
+        {
+          "action": "sort_dates",
+          "applied": true,
+          "rows_affected": 26914,
+          "date_column": "Revenue Date"
+        },
+        {
+          "action": "remove_future_dates",
+          "rows_removed": 0,
+          "date_column": "Revenue Date"
+        }
+      ],
+      "cleaned_path": "data/uploads/project_1/run_1/cleaned/revenue__default_cleaned.csv"
+    },
+    "leads|__default__": {
+      "status": "ok",
+      "file_key": "leads",
+      "sheet_name": null,
+      "dataset_names": [
+        "leads"
+      ],
+      "rows_before": 6323,
+      "rows_after": 6323,
+      "applied_fixes": [
+        {
+          "action": "trim_headers",
+          "columns_changed": 0
+        },
+        {
+          "action": "standardize_null_tokens",
+          "values_replaced": 0
+        },
+        {
+          "action": "drop_blank_rows",
+          "rows_removed": 0
+        },
+        {
+          "action": "remove_exact_duplicates",
+          "rows_removed": 0
+        },
+        {
+          "action": "parse_numeric_columns",
+          "columns": [
+            {
+              "column": "Count(distinct profile_id)",
+              "non_null_after": 6323
+            }
+          ],
+          "columns_count": 1
+        },
+        {
+          "action": "trim_object_values",
+          "values_touched": 0
+        },
+        {
+          "action": "sort_dates",
+          "applied": true,
+          "rows_affected": 6323,
+          "date_column": "Lead Date"
+        },
+        {
+          "action": "remove_future_dates",
+          "rows_removed": 0,
+          "date_column": "Lead Date"
+        }
+      ],
+      "cleaned_path": "data/uploads/project_1/run_1/cleaned/leads__default_cleaned.csv"
+    },
+    "cost|__default__": {
+      "status": "ok",
+      "file_key": "cost",
+      "sheet_name": null,
+      "dataset_names": [
+        "cost"
+      ],
+      "rows_before": 6323,
+      "rows_after": 6323,
+      "applied_fixes": [
+        {
+          "action": "trim_headers",
+          "columns_changed": 0
+        },
+        {
+          "action": "standardize_null_tokens",
+          "values_replaced": 0
+        },
+        {
+          "action": "drop_blank_rows",
+          "rows_removed": 0
+        },
+        {
+          "action": "remove_exact_duplicates",
+          "rows_removed": 0
+        },
+        {
+          "action": "parse_numeric_columns",
+          "columns": [
+            {
+              "column": "Cost",
+              "non_null_after": 6323
+            }
+          ],
+          "columns_count": 1
+        },
+        {
+          "action": "trim_object_values",
+          "values_touched": 0
+        },
+        {
+          "action": "sort_dates",
+          "applied": true,
+          "rows_affected": 6323,
+          "date_column": "lead_day"
+        },
+        {
+          "action": "remove_future_dates",
+          "rows_removed": 0,
+          "date_column": "lead_day"
+        }
+      ],
+      "cleaned_path": "data/uploads/project_1/run_1/cleaned/cost__default_cleaned.csv"
+    },
+    "cohort_revenue|__default__": {
+      "status": "ok",
+      "file_key": "cohort_revenue",
+      "sheet_name": null,
+      "dataset_names": [
+        "cohort_revenue"
+      ],
+      "rows_before": 26914,
+      "rows_after": 26913,
+      "applied_fixes": [
+        {
+          "action": "trim_headers",
+          "columns_changed": 0
+        },
+        {
+          "action": "standardize_null_tokens",
+          "values_replaced": 0
+        },
+        {
+          "action": "drop_blank_rows",
+          "rows_removed": 0
+        },
+        {
+          "action": "remove_exact_duplicates",
+          "rows_removed": 1
+        },
+        {
+          "action": "parse_numeric_columns",
+          "columns": [
+            {
+              "column": "Revenue",
+              "non_null_after": 26913
+            }
+          ],
+          "columns_count": 1
+        },
+        {
+          "action": "trim_object_values",
+          "values_touched": 0
+        },
+        {
+          "action": "sort_dates",
+          "applied": true,
+          "rows_affected": 26913,
+          "date_column": "Lead Month"
+        },
+        {
+          "action": "remove_future_dates",
+          "rows_removed": 0,
+          "date_column": "Lead Month"
+        }
+      ],
+      "cleaned_path": "data/uploads/project_1/run_1/cleaned/cohort_revenue__default_cleaned.csv"
+    }
+  }
+}

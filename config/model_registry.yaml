@@ -1,0 +1,37 @@
+baselines:
+  - naive
+  - seasonal_naive
+  - drift
+  - historical_average
+
+statsforecast:
+  enabled: true
+  models:
+    - AutoARIMA
+    - AutoETS
+    - Theta
+    - HistoricAverage
+
+prophet:
+  enabled: true
+  interval_width: 0.8
+
+lightgbm:
+  enabled: true
+  objective: regression
+  num_leaves: 31
+  learning_rate: 0.05
+  n_estimators: 300
+
+ensemble:
+  enabled: true
+  compare_mode: blend_vs_best
+  weights:
+    recent_score: 0.5
+    overall_score: 0.3
+    stability_score: 0.2
+
+random_forest:
+  enabled: true
+  n_estimators: 350
+  max_depth: 12

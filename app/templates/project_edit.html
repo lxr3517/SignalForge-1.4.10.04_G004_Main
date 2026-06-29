@@ -1,0 +1,44 @@
+
+{% extends 'base.html' %}
+{% block title %}Edit Project{% endblock %}
+{% block content %}
+
+<section class="card explainer-card">
+  <div class="card-header"><h2>Quick guidance <span class="help-tip" data-tooltip="Hover the question-mark icons for context. The app is designed to move from upload → mapping → quality → setup → results → planning.">?</span></h2></div>
+  <p class="muted">This page includes helper explanations so users can understand not just what to click, but why each step matters to the final forecast and planning output.</p>
+</section>
+
+<div class="page-header"><h1>Edit Project</h1><p>Change the project defaults, then continue working with your current run when available.</p></div>
+<form class="card form-grid" method="post" action="/projects/{{ project.id }}/edit">
+  {% if run_id %}<input type="hidden" name="return_run_id" value="{{ run_id }}">{% endif %}
+  <label>Project Name<input type="text" name="name" required value="{{ project.name }}"></label>
+  <label>Description<textarea name="description" rows="4">{{ project.description or '' }}</textarea></label>
+  <label>Frequency
+    <select name="frequency">
+      <option value="D" {% if project.frequency=='D' %}selected{% endif %}>Daily</option>
+      <option value="W" {% if project.frequency=='W' %}selected{% endif %}>Weekly</option>
+      <option value="M" {% if project.frequency=='M' %}selected{% endif %}>Monthly</option>
+    </select>
+  </label>
+  <label>Years of History<input type="number" name="years_of_history" value="{{ project.years_of_history }}" min="1" max="20"></label>
+  <label>Forecast Scope
+    <select name="forecast_scope">
+      {% for value, label in scope_options %}
+      <option value="{{ value }}" {% if project.forecast_scope==value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="checkbox-row"><input type="checkbox" name="grouped_forecast" value="true" {% if project.grouped_forecast %}checked{% endif %}> Enable grouped/hierarchical forecasting</label>
+  <div class="button-row">
+    <button class="button" type="submit">Save Project</button>
+    <a class="button button-secondary" href="/">Cancel</a>
+  </div>
+
+
+
+
+
+</form>
+{% endblock %}
+
+<form method="post" action="/projects/{{ project.id }}/delete" class="top-gap" onsubmit="return confirm('Delete project \'{{ project.name }}\' and all its runs? This cannot be undone.');"><button type="submit" class="button danger-button">Delete Project</button></form>

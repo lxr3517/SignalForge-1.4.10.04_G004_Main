@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "name": "Data Crunch",
+    "description": null,
+    "frequency": "D",
+    "years_of_history": 1,
+    "grouped_forecast": false,
+    "forecast_scope": "company_total",
+    "created_at": "2026-06-29T17:04:18.554083",
+    "updated_at": "2026-06-29T17:04:18.554083",
+    "project_dir": "data/projects/project_1"
+  }
+]

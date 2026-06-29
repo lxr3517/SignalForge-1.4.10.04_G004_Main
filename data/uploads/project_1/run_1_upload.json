@@ -1,0 +1,58 @@
+{
+  "files": {
+    "revenue": {
+      "path": "data/uploads/project_1/run_1/Demo_Revenue_Jan2025_to_Mar2026.csv",
+      "filename": "Demo_Revenue_Jan2025_to_Mar2026.csv"
+    },
+    "leads": {
+      "path": "data/uploads/project_1/run_1/Demo_Leads_Jan2025_to_Mar2026.csv",
+      "filename": "Demo_Leads_Jan2025_to_Mar2026.csv"
+    },
+    "cost": {
+      "path": "data/uploads/project_1/run_1/Demo_Cost_Jan2025_to_Mar2026.csv",
+      "filename": "Demo_Cost_Jan2025_to_Mar2026.csv"
+    },
+    "cohort_revenue": {
+      "path": "data/uploads/project_1/run_1/Demo_Cohort_Revenue_Jan2025_to_Mar2026.csv",
+      "filename": "Demo_Cohort_Revenue_Jan2025_to_Mar2026.csv"
+    }
+  },
+  "cleaned_sources": {
+    "revenue|__default__": {
+      "path": "data/uploads/project_1/run_1/cleaned/revenue__default_cleaned.csv",
+      "raw_path": "data/uploads/project_1/run_1/Demo_Revenue_Jan2025_to_Mar2026.csv",
+      "file_key": "revenue",
+      "sheet_name": null,
+      "dataset_names": [
+        "revenue"
+      ]
+    },
+    "leads|__default__": {
+      "path": "data/uploads/project_1/run_1/cleaned/leads__default_cleaned.csv",
+      "raw_path": "data/uploads/project_1/run_1/Demo_Leads_Jan2025_to_Mar2026.csv",
+      "file_key": "leads",
+      "sheet_name": null,
+      "dataset_names": [
+        "leads"
+      ]
+    },
+    "cost|__default__": {
+      "path": "data/uploads/project_1/run_1/cleaned/cost__default_cleaned.csv",
+      "raw_path": "data/uploads/project_1/run_1/Demo_Cost_Jan2025_to_Mar2026.csv",
+      "file_key": "cost",
+      "sheet_name": null,
+      "dataset_names": [
+        "cost"
+      ]
+    },
+    "cohort_revenue|__default__": {
+      "path": "data/uploads/project_1/run_1/cleaned/cohort_revenue__default_cleaned.csv",
+      "raw_path": "data/uploads/project_1/run_1/Demo_Cohort_Revenue_Jan2025_to_Mar2026.csv",
+      "file_key": "cohort_revenue",
+      "sheet_name": null,
+      "dataset_names": [
+        "cohort_revenue"
+      ]
+    }
+  }
+}

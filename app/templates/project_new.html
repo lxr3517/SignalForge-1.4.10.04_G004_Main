@@ -1,0 +1,63 @@
+
+{% extends 'base.html' %}
+{% block title %}New Project{% endblock %}
+{% block tip_group %}project_new{% endblock %}
+{% block content %}
+
+<section class="card explainer-card">
+  <div class="card-header"><h2>Quick guidance <span class="help-tip" data-tooltip="Hover the question-mark icons for context. The app is designed to move from upload → mapping → quality → setup → results → planning.">?</span></h2></div>
+  <p class="muted">This page includes helper explanations so users can understand not just what to click, but why each step matters to the final forecast and planning output.</p>
+</section>
+
+<div class="page-header">
+  <h1>Create Project</h1>
+  <p class="muted">Set the default scope for this forecast lab. You can always start fresh later.</p>
+</div>
+{% if error_message %}
+<section class="card" style="border:1px solid rgba(220,38,38,.35); background:rgba(220,38,38,.08); margin-bottom:16px;">
+  <div class="card-header"><h2 style="margin:0; color:#ef4444;">Project name already exists</h2></div>
+  <p class="muted" style="margin:0;">{{ error_message }}</p>
+</section>
+{% endif %}
+<form class="card form-grid" method="post" action="/projects">
+  <label>Project Name
+    <span class="help-tip" data-tooltip="A simple label for this forecast workspace so you can find it later.">?</span>
+    <input type="text" name="name" value="{{ form_data.name if form_data else '' }}" required>
+  </label>
+  <label>Description
+    <span class="help-tip" data-tooltip="Optional notes about what this project is for, like revenue forecasting for March planning.">?</span>
+    <textarea name="description" rows="4">{{ form_data.description if form_data else '' }}</textarea>
+  </label>
+  <label>Frequency
+    <span class="help-tip" data-tooltip="Choose the primary cadence you want to forecast most often. Daily is best if your source data is by day.">?</span>
+    <select name="frequency">
+      <option value="D" {% if form_data and form_data.frequency == 'D' %}selected{% endif %}>Daily</option>
+      <option value="W" {% if form_data and form_data.frequency == 'W' %}selected{% endif %}>Weekly</option>
+      <option value="M" {% if form_data and form_data.frequency == 'M' %}selected{% endif %}>Monthly</option>
+    </select>
+  </label>
+  <label>Years of History
+    <span class="help-tip" data-tooltip="Default is 5 years. Increase it if you have more history and want the models to learn longer patterns.">?</span>
+    <input type="number" name="years_of_history" value="{{ form_data.years_of_history if form_data else 5 }}" min="1" max="20">
+  </label>
+  <label>Forecast Scope
+    <span class="help-tip" data-tooltip="Start with company total, or choose Affiliate, Platform, or a custom category if you plan to forecast sub-series.">?</span>
+    <select name="forecast_scope">
+      {% for value, label in scope_options %}
+      <option value="{{ value }}" {% if form_data and form_data.forecast_scope == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label class="checkbox-row">
+    <input type="checkbox" name="grouped_forecast" value="true" {% if form_data and form_data.grouped_forecast %}checked{% endif %}>
+    <span>Enable grouped / hierarchical forecasting
+      <span class="help-tip" data-tooltip="Turn this on when you want totals plus lower-level groups to stay aligned, like company total and Affiliate ID totals.">?</span>
+    </span>
+  </label>
+  <div>
+    <button class="button" type="submit">Create and Continue
+      <span class="help-tip" data-tooltip="This starts a fresh new project and takes you to the upload step.">?</span>
+    </button>
+  </div>
+</form>
+{% endblock %}

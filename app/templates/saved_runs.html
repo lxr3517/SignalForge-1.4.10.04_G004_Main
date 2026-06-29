@@ -1,0 +1,59 @@
+
+{% extends 'base.html' %}
+{% block title %}Saved Runs{% endblock %}
+{% block content %}
+
+<section class="card explainer-card">
+  <div class="card-header"><h2>Quick guidance <span class="help-tip" data-tooltip="Hover the question-mark icons for context. The app is designed to move from upload → mapping → quality → setup → results → planning.">?</span></h2></div>
+  <p class="muted">This page includes helper explanations so users can understand not just what to click, but why each step matters to the final forecast and planning output.</p>
+</section>
+
+<div class="page-header"><h1>Saved Runs</h1><p>Open, duplicate, or rerun previous work without rebuilding the full setup from scratch.</p></div>
+<section class="card">
+  <div class="card-header"><h2>Quick Compare</h2></div>
+  <form class="grid two compact-grid" method="get" action="/runs/compare">
+    <label>Left Run
+      <select name="left_run_id">
+        <option value="">Choose a run</option>
+        {% for run in runs %}
+          <option value="{{ run.id }}">Run {{ run.id }} · Project {{ run.project_id }} · {{ run.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Right Run
+      <select name="right_run_id">
+        <option value="">Choose a run</option>
+        {% for run in runs %}
+          <option value="{{ run.id }}">Run {{ run.id }} · Project {{ run.project_id }} · {{ run.label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="button-row"><button type="submit" class="button">Open Comparison</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-header"><h2>Run Library</h2><input id="run-search" type="text" placeholder="Filter runs, projects, or status" class="table-filter"></div>
+  <table data-filter-table="run-search">
+    <thead><tr><th>Run ID</th><th>Label</th><th>Project ID</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for run in runs %}
+      <tr>
+        <td>{{ run.id }}</td>
+        <td>{{ run.label }}</td>
+        <td>{{ run.project_id }}</td>
+        <td><span class="pill">{{ run.status }}</span></td>
+        <td class="action-cell">
+          <a href="/projects/{{ run.project_id }}/results?run_id={{ run.id }}">Open</a>
+          <form method="post" action="/projects/{{ run.project_id }}/runs/{{ run.id }}/duplicate" class="inline-form"><button type="submit" class="link-button">Duplicate</button></form>
+          <form method="post" action="/projects/{{ run.project_id }}/runs/{{ run.id }}/rerun" class="inline-form"><button type="submit" class="link-button">Rerun</button></form>
+          <a href="/projects/{{ run.project_id }}/edit?run_id={{ run.id }}">Edit Project</a> <a href="/runs/compare?left_run_id={{ run.id }}">Compare</a>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5">No saved runs.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

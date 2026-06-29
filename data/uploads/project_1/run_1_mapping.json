@@ -1,0 +1,82 @@
+{
+  "date_column": "Revenue Date",
+  "target_column": "Revenue",
+  "category_column": null,
+  "affiliate_id_column": "Aff_param",
+  "platform_column": "Platform",
+  "campaign_id_column": "Campaign",
+  "ad_id_column": "Ad Name",
+  "profile_id_column": "profile_id",
+  "custom_regressor_columns": [],
+  "revenue": {
+    "file_key": "revenue",
+    "sheet_name": null,
+    "date_column": "Revenue Date",
+    "target_column": "Revenue",
+    "category_column": null,
+    "affiliate_id_column": "Aff_param",
+    "platform_column": "Platform",
+    "campaign_id_column": "Campaign",
+    "ad_id_column": "Ad Name",
+    "profile_id_column": "profile_id"
+  },
+  "leads": {
+    "file_key": "leads",
+    "sheet_name": null,
+    "date_column": "Lead Date",
+    "value_column": "Count(distinct profile_id)",
+    "category_column": "Platform",
+    "platform_column": "Platform",
+    "affiliate_id_column": "Aff_param",
+    "campaign_id_column": "Campaign",
+    "ad_id_column": "Ad Name",
+    "helper_frequency": "auto",
+    "fill_method": "distribute"
+  },
+  "cost": {
+    "file_key": "cost",
+    "sheet_name": null,
+    "date_column": "lead_day",
+    "value_column": "Cost",
+    "category_column": "Platform",
+    "platform_column": "Platform",
+    "affiliate_id_column": "Aff_param",
+    "campaign_id_column": "Campaign",
+    "ad_id_column": "Ad Name",
+    "helper_frequency": "auto",
+    "fill_method": "distribute"
+  },
+  "events": {
+    "file_key": null,
+    "sheet_name": null,
+    "date_column": null,
+    "event_flag_column": null,
+    "outage_flag_column": null,
+    "category_column": null
+  },
+  "cohort_revenue": {
+    "file_key": "cohort_revenue",
+    "sheet_name": null,
+    "lead_month_column": "Lead Month",
+    "transaction_month_column": "Revenue Month",
+    "value_column": "Revenue",
+    "category_column": "Platform",
+    "platform_column": "Platform",
+    "affiliate_id_column": "Aff_param",
+    "campaign_id_column": "Campaign",
+    "ad_id_column": "Ad Name"
+  },
+  "leads_column": "Count(distinct profile_id)",
+  "cost_column": "Cost",
+  "event_flag_column": null,
+  "outage_flag_column": null,
+  "custom_regressors": {
+    "file_key": null,
+    "sheet_name": null,
+    "date_column": null,
+    "value_columns": [],
+    "category_column": null,
+    "helper_frequency": "auto",
+    "fill_method": "distribute"
+  }
+}

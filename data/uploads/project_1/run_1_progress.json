@@ -1,0 +1,127 @@
+{
+  "status": "running",
+  "percent": 78,
+  "step": "Running LightGBM",
+  "detail": "Building lag-based machine-learning forecasts and recursive predictions using GPU acceleration when available across LightGBM and XGBoost. Revenue lag modeling is enabled. SignalForge is testing whether tree models can capture nonlinear revenue patterns.",
+  "started_at": "2026-06-29T16:49:01.101317Z",
+  "updated_at": "2026-06-29T16:49:01.724249Z",
+  "finished_at": null,
+  "error": null,
+  "result_url": null,
+  "model_activity": {
+    "baseline": {
+      "label": "Baseline",
+      "family": "baseline",
+      "models": [
+        "naive"
+      ],
+      "session_total": 1,
+      "queued": 0,
+      "running": 0,
+      "completed": 1,
+      "failed": 0,
+      "status": "completed",
+      "device": "cpu",
+      "note": "Finished 1 of 1 model sessions successfully.",
+      "last_error": ""
+    },
+    "lightgbm": {
+      "label": "Lightgbm",
+      "family": "lightgbm",
+      "models": [
+        "lightgbm"
+      ],
+      "session_total": 1,
+      "queued": 0,
+      "running": 1,
+      "completed": 0,
+      "failed": 0,
+      "status": "running",
+      "device": "gpu",
+      "note": "Building lag-based machine-learning forecasts and recursive predictions using GPU acceleration when available across LightGBM and XGBoost. Revenue lag modeling is enabled. SignalForge is testing whether tree models can capture nonlinear revenue patterns.",
+      "last_error": ""
+    },
+    "xgboost": {
+      "label": "Xgboost",
+      "family": "xgboost",
+      "models": [
+        "xgboost"
+      ],
+      "session_total": 1,
+      "queued": 1,
+      "running": 0,
+      "completed": 0,
+      "failed": 0,
+      "status": "queued",
+      "device": "gpu",
+      "note": "",
+      "last_error": ""
+    },
+    "linear": {
+      "label": "Linear",
+      "family": "linear",
+      "models": [
+        "elasticnet"
+      ],
+      "session_total": 1,
+      "queued": 1,
+      "running": 0,
+      "completed": 0,
+      "failed": 0,
+      "status": "queued",
+      "device": "cpu",
+      "note": "",
+      "last_error": ""
+    }
+  },
+  "log": [
+    {
+      "ts": "2026-06-29T16:49:01.101317Z",
+      "percent": 2,
+      "step": "Starting",
+      "detail": "Forecast engine is starting up and validating the saved run settings before model training begins."
+    },
+    {
+      "ts": "2026-06-29T16:49:01.110319Z",
+      "percent": 5,
+      "step": "Preparing data",
+      "detail": "Normalizing dates, targets, and series structure so the engine can remove unusable rows before training begins."
+    },
+    {
+      "ts": "2026-06-29T16:49:01.283596Z",
+      "percent": 10,
+      "step": "Building configuration",
+      "detail": "Preparing horizon, frequency, and tuning settings for 452 clean rows across 1 series from 2025-01-03 to 2026-03-31."
+    },
+    {
+      "ts": "2026-06-29T16:49:01.355508Z",
+      "percent": 11,
+      "step": "Configuration ready",
+      "detail": "Forecast horizon is 90D, frequency is D, tuning depth is aggressive, and compute mode is cuda / prefer_gpu."
+    },
+    {
+      "ts": "2026-06-29T16:49:01.358510Z",
+      "percent": 12,
+      "step": "Preparing model sessions",
+      "detail": "Registering selected model families, session counts, and compute device choices."
+    },
+    {
+      "ts": "2026-06-29T16:49:01.361510Z",
+      "percent": 15,
+      "step": "Running baseline models",
+      "detail": "Calculating naive and seasonal benchmark forecasts so every advanced model has a simple business baseline to beat."
+    },
+    {
+      "ts": "2026-06-29T16:49:01.721250Z",
+      "percent": 16,
+      "step": "Running baseline models status",
+      "detail": "1 completed, 0 failed."
+    },
+    {
+      "ts": "2026-06-29T16:49:01.724249Z",
+      "percent": 78,
+      "step": "Running LightGBM",
+      "detail": "Building lag-based machine-learning forecasts and recursive predictions using GPU acceleration when available across LightGBM and XGBoost. Revenue lag modeling is enabled. SignalForge is testing whether tree models can capture nonlinear revenue patterns."
+    }
+  ]
+}

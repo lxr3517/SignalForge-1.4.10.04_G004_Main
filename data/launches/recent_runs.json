@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "project_id": 1,
+    "label": "Initial Run",
+    "status": "draft",
+    "target_column": null,
+    "date_column": null,
+    "category_column": null,
+    "selected_models": null,
+    "scoring_metric": null,
+    "forecast_horizon": null,
+    "output_mode": null,
+    "created_at": "2026-06-29T17:04:18.561083",
+    "updated_at": "2026-06-29T17:04:18.561083",
+    "project_dir": "data/projects/project_1",
+    "forecast_settings_path": "data/projects/project_1/run_1_forecast_settings.json",
+    "mapping_path": "data/projects/project_1/run_1_mapping.json",
+    "upload_meta_path": "data/projects/project_1/run_1_upload.json",
+    "visuals_snapshot_path": "data/projects/project_1/run_1_visuals.json"
+  }
+]

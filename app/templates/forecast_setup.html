@@ -1,0 +1,514 @@
+
+{% extends 'base.html' %}
+{% block title %}Forecast Setup<style>
+.flow-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}.flow-step{display:flex;align-items:center;gap:.65rem;padding:.8rem 1rem;border-radius:14px;border:1px solid rgba(120,140,190,.18);background:rgba(24,32,56,.55)}.flow-step span{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:rgba(125,145,210,.18);font-weight:700}.flow-step.is-complete{border-color:rgba(63,185,80,.35)}.flow-step.is-complete span{background:rgba(34,197,94,.2);color:#baf7c8}.flow-step.is-active{border-color:rgba(72,171,224,.38);box-shadow:0 10px 24px rgba(59,130,246,.12)}.button-primary-green{background:linear-gradient(135deg,#22c55e,#16a34a)!important;border-color:rgba(44,191,96,.55)!important;color:#fff!important;box-shadow:0 10px 24px rgba(34,197,94,.16)}.button-primary-green:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(34,197,94,.24)}
+</style>
+{% endblock %}
+{% block tip_group %}forecast_setup<style>
+.flow-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}.flow-step{display:flex;align-items:center;gap:.65rem;padding:.8rem 1rem;border-radius:14px;border:1px solid rgba(120,140,190,.18);background:rgba(24,32,56,.55)}.flow-step span{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:rgba(125,145,210,.18);font-weight:700}.flow-step.is-complete{border-color:rgba(63,185,80,.35)}.flow-step.is-complete span{background:rgba(34,197,94,.2);color:#baf7c8}.flow-step.is-active{border-color:rgba(72,171,224,.38);box-shadow:0 10px 24px rgba(59,130,246,.12)}.button-primary-green{background:linear-gradient(135deg,#22c55e,#16a34a)!important;border-color:rgba(44,191,96,.55)!important;color:#fff!important;box-shadow:0 10px 24px rgba(34,197,94,.16)}.button-primary-green:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(34,197,94,.24)}
+</style>
+{% endblock %}
+{% block content %}
+
+<section class="card explainer-card">
+  <div class="card-header"><h2>How setup affects results <span class="help-tip" data-tooltip-key="setup_page">?</span></h2></div>
+  <p class="muted">Think of this page as the run strategy. The model choices, horizon, GPU mode, and output style change how hard the app searches for patterns and how the final results are presented.</p>
+</section>
+
+<div class="page-header">
+  <h1>Forecast Setup</h1>
+  <p class="muted">Choose how the run should be evaluated and what models should compete.</p>
+  <div class="inline-actions"><a href="/projects/{{ project_id }}/edit?run_id={{ run_id }}">Edit project defaults</a></div>
+</div>
+<section class="card">
+  <div class="card-header"><h2>Flow Progress</h2></div>
+  <div class="flow-steps">
+    <div class="flow-step is-complete"><span>1</span><strong>Upload</strong></div>
+    <div class="flow-step is-complete"><span>2</span><strong>Map</strong></div>
+    <div class="flow-step is-complete"><span>3</span><strong>Validate</strong></div>
+    <div class="flow-step is-active"><span>4</span><strong>Forecast</strong></div>
+  </div>
+</section>
+{% if forecast_guidance %}
+<section class="card top-gap">
+  <div class="card-header"><h2>Smart Guidance</h2></div>
+  <div class="stack-list">
+    {% for item in forecast_guidance %}
+    <div class="insight-pill{% if item.level == 'warning' %} highlight{% endif %}">
+      <strong>{{ item.title }}</strong><br>{{ item.body }}<br><span class="muted">{{ item.action }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if mapping %}
+<section class="card">
+  <div class="card-header"><h2>Mapped inputs available for this run <span class="help-tip" data-tooltip="This summary shows which inputs are available to the model. The more trustworthy and relevant the mapped drivers are, the more useful the forecast will be.">?</span></h2></div>
+  <div class="grid two">
+    <div>
+      <p><strong>Target:</strong> {{ mapping.target_column }}</p>
+      <p><strong>Date:</strong> {{ mapping.date_column }}</p>
+      <p><strong>Primary grouping:</strong> <span class="help-tip" data-tooltip="The app now supports a fuller funnel grain using platform, affiliate, campaign, and ad identifiers.">?</span> {{ mapping.platform_column or mapping.category_column or mapping.affiliate_id_column or mapping.campaign_id_column or mapping.ad_id_column or 'Company total only' }}</p>
+    </div>
+    <div>
+      <p><strong>Leads:</strong> {{ mapping.leads.value_column if mapping.leads else (mapping.leads_column or 'Not mapped') }}{% if mapping.leads and mapping.leads.sheet_name %} <span class='muted'>(sheet: {{ mapping.leads.sheet_name }})</span>{% endif %}</p>
+      <p><strong>Cost:</strong> {{ mapping.cost.value_column if mapping.cost else (mapping.cost_column or 'Not mapped') }}{% if mapping.cost and mapping.cost.sheet_name %} <span class='muted'>(sheet: {{ mapping.cost.sheet_name }})</span>{% endif %}</p>
+      <p><strong>Custom regressors:</strong>
+        {% set cr_from_sheet = (mapping.custom_regressor_columns or []) %}
+        {% set cr_from_file = (mapping.custom_regressors.value_columns if mapping.custom_regressors else []) %}
+        {% set all_cr = (cr_from_sheet + cr_from_file)|unique|list %}
+        {{ all_cr|join(', ') if all_cr else 'None' }}
+        {% if mapping.custom_regressors and mapping.custom_regressors.file_key %}
+          <span class="muted">(from: {{ mapping.custom_regressors.file_key }}{% if mapping.custom_regressors.sheet_name %} / {{ mapping.custom_regressors.sheet_name }}{% endif %})</span>
+        {% endif %}
+      </p>
+      {% for key, val in mapping.items() %}
+        {% if key.startswith('custom_') and val is mapping and val.value_columns %}
+        <p><strong>{{ uploaded_files[key].label if uploaded_files and key in uploaded_files and uploaded_files[key].label else key.replace('custom_','Custom Sheet ') }}:</strong>
+          {{ val.value_columns|join(', ') }}
+          <span class="muted">({{ key }}{% if val.sheet_name %} / {{ val.sheet_name }}{% endif %})</span>
+        </p>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% if uploaded_files %}
+  <p class="muted">Files attached to this run:
+    {% for key, meta in uploaded_files.items() %}
+    <span class="pill">{{ key.replace('_', ' ').title() }}</span>
+    {% endfor %}
+  </p>
+  {% endif %}
+</section>
+{% endif %}
+
+
+  <section class="card profile-card" style="margin-bottom:1rem;">
+    <div class="card-header"><h2>Business Profile <span class="help-tip" data-tooltip="Business profiles keep one forecasting engine but tune the default model package, lag posture, and plain-English guidance for the type of business you run.">?</span></h2></div>
+    <div class="grid two" style="align-items:start;gap:1rem;">
+      <label>Business Type
+        <select name="business_profile" id="business-profile">
+          <option value="general" {% if (forecast_settings.business_profile if forecast_settings else 'general')=='general' %}selected{% endif %}>General</option>
+          <option value="subscription" {% if forecast_settings and forecast_settings.business_profile=='subscription' %}selected{% endif %}>Subscription</option>
+          <option value="ecommerce" {% if forecast_settings and forecast_settings.business_profile=='ecommerce' %}selected{% endif %}>Ecommerce</option>
+          <option value="lead_gen" {% if forecast_settings and forecast_settings.business_profile=='lead_gen' %}selected{% endif %}>Lead Generation</option>
+          <option value="credit_membership" {% if forecast_settings and forecast_settings.business_profile=='credit_membership' %}selected{% endif %}>Credit / Membership</option>
+          <option value="marketplace" {% if forecast_settings and forecast_settings.business_profile=='marketplace' %}selected{% endif %}>Marketplace</option>
+        </select>
+      </label>
+      <div class="card" style="padding:1rem;background:rgba(116,138,197,0.10);border-color:rgba(128,150,206,0.18);">
+        <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+          <div>
+            <strong id="profile-title">General</strong>
+            <p class="muted" id="profile-summary" style="margin:.35rem 0 0;">Balanced defaults for mixed businesses and unknown patterns.</p>
+          </div>
+          <button type="button" class="button button-secondary" id="apply-profile-package">Apply profile package</button>
+        </div>
+        <div id="profile-chips" class="button-row" style="margin-top:.85rem;flex-wrap:wrap;"></div>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:.65rem;">Profiles recommend model packages and lag defaults, but you can still override anything below before running the forecast.</p>
+  </section>
+
+<form class="card form-grid" id="run-forecast-form" method="post" action="/projects/{{ project_id }}/forecast">
+  <input type="hidden" name="run_id" value="{{ run_id }}">
+
+  <section class="card" style="margin:1rem 0;">
+    <div class="card-header"><h2>Training Window Selector <span class="help-tip" data-tooltip="Choose which historical range SignalForge should use for training. This filters the training data only.">?</span></h2></div>
+    <div class="grid three compact-grid">
+      <label>Training Mode
+        <select id="training-window-mode" name="training_window_mode">
+          <option value="all_history" {% if (forecast_settings.training_window_mode if forecast_settings else 'all_history')=='all_history' %}selected{% endif %}>Use all history</option>
+          <option value="last_90_days" {% if forecast_settings and forecast_settings.training_window_mode=='last_90_days' %}selected{% endif %}>Last 90 days</option>
+          <option value="last_180_days" {% if forecast_settings and forecast_settings.training_window_mode=='last_180_days' %}selected{% endif %}>Last 180 days</option>
+          <option value="last_365_days" {% if forecast_settings and forecast_settings.training_window_mode=='last_365_days' %}selected{% endif %}>Last 365 days</option>
+          <option value="custom_range" {% if forecast_settings and forecast_settings.training_window_mode=='custom_range' %}selected{% endif %}>Custom range</option>
+        </select>
+      </label>
+      <label>Training Start
+        <input type="date" id="training-window-start" name="training_window_start" value="{{ forecast_settings.training_window_start if forecast_settings else '' }}">
+      </label>
+      <label>Training End
+        <input type="date" id="training-window-end" name="training_window_end" value="{{ forecast_settings.training_window_end if forecast_settings else '' }}">
+      </label>
+    </div>
+    <div class="grid three stats-grid top-gap">
+      <section class="card stat-card"><span class="stat-label">Actual Data Start</span><strong class="stat-value">{{ training_window_context.actual_data_start or 'n/a' }}</strong></section>
+      <section class="card stat-card"><span class="stat-label">Actual Data End</span><strong class="stat-value">{{ training_window_context.actual_data_end or 'n/a' }}</strong></section>
+      <section class="card stat-card"><span class="stat-label">Preset Anchor</span><strong class="stat-value">Last day of actual data</strong></section>
+    </div>
+    <p class="muted" style="margin-top:.65rem;">SignalForge recommends at least 60–90 observations. Preset windows now end on the last day of uploaded actual data instead of today.</p>
+  </section>
+
+  <label>Frequency
+    <span class="help-tip" data-tooltip="This controls how the forecast engine interprets the timeline and horizon.">?</span>
+    <select name="frequency">
+      <option value="D" {% if (forecast_settings.frequency if forecast_settings else project.frequency if project else "D")=="D" %}selected{% endif %}>Daily</option>
+      <option value="W" {% if (forecast_settings.frequency if forecast_settings else project.frequency if project else "D")=="W" %}selected{% endif %}>Weekly</option>
+      <option value="M" {% if (forecast_settings.frequency if forecast_settings else project.frequency if project else "D")=="M" %}selected{% endif %}>Monthly</option>
+    </select>
+  </label>
+  <label>Horizon
+    <span class="help-tip" data-tooltip="Choose how far ahead the forecast should look. The same engine can be rerun later for another horizon.">?</span>
+    <select name="horizon">
+      <option value="7" {% if (forecast_settings.horizon if forecast_settings else 30)|int == 7 %}selected{% endif %}>7 days</option>
+      <option value="30" {% if (forecast_settings.horizon if forecast_settings else 30)|int == 30 %}selected{% endif %}>30 days</option>
+      <option value="90" {% if (forecast_settings.horizon if forecast_settings else 30)|int == 90 %}selected{% endif %}>90 days</option>
+      <option value="12" {% if (forecast_settings.horizon if forecast_settings else 30)|int == 12 %}selected{% endif %}>12 months</option>
+    </select>
+  </label>
+  <label>Scoring Metric
+    <span class="help-tip" data-tooltip="This decides how the app ranks model quality. Balanced is the safest starting choice.">?</span>
+    <select name="scoring_metric">
+      <option value="balanced" {% if (forecast_settings.scoring_metric if forecast_settings else "balanced")=="balanced" %}selected{% endif %}>Balanced</option>
+      <option value="mae" {% if forecast_settings and forecast_settings.scoring_metric=="mae" %}selected{% endif %}>Lowest MAE</option>
+      <option value="rmse" {% if forecast_settings and forecast_settings.scoring_metric=="rmse" %}selected{% endif %}>Lowest RMSE</option>
+      <option value="smape" {% if forecast_settings and forecast_settings.scoring_metric=="smape" %}selected{% endif %}>Lowest sMAPE</option>
+      <option value="bias" {% if forecast_settings and forecast_settings.scoring_metric=="bias" %}selected{% endif %}>Lowest Bias</option>
+    </select>
+  </label>
+  <label>Output Mode
+    <span class="help-tip" data-tooltip="Scenario bands show conservative, expected, and aggressive paths. Confidence intervals show statistical upper and lower bands.">?</span>
+    <select name="output_mode">
+      <option value="scenario_bands" {% if (forecast_settings.output_mode if forecast_settings else "scenario_bands")=="scenario_bands" %}selected{% endif %}>Scenario Bands</option>
+      <option value="confidence_intervals" {% if forecast_settings and forecast_settings.output_mode=="confidence_intervals" %}selected{% endif %}>Confidence Intervals</option>
+      <option value="single_line" {% if forecast_settings and forecast_settings.output_mode=="single_line" %}selected{% endif %}>Single Line</option>
+    </select>
+  </label>
+  <label class="checkbox-row">
+    <input type="checkbox" name="use_gpu" value="true" {% if forecast_settings and forecast_settings.use_gpu %}checked{% endif %}>
+    <span>Use GPU acceleration when available
+      <span class="help-tip" data-tooltip="GPU mode now prioritizes both LightGBM and XGBoost when a compatible CUDA/NVIDIA backend is detected. If GPU training fails, the app falls back to CPU automatically.">?</span>
+    </span>
+  </label>
+  <section class="card" style="margin:1rem 0;">
+    <div class="card-header"><h2>Lag Intelligence <span class="help-tip" data-tooltip="Lag Intelligence lets SignalForge compare spend and leads against revenue that lands later, instead of forcing same-day matching.">?</span></h2></div>
+    <div class="grid two compact-grid">
+      <label class="checkbox-row">
+        <input type="checkbox" name="enable_revenue_lag_modeling" value="true" {% if not forecast_settings or forecast_settings.enable_revenue_lag_modeling %}checked{% endif %}>
+        <span>Enable lag-aware revenue modeling</span>
+      </label>
+      <label>Lag profile
+        <select name="revenue_lag_profile">
+          <option value="short" {% if forecast_settings and forecast_settings.revenue_lag_profile=="short" %}selected{% endif %}>Short</option>
+          <option value="standard" {% if (forecast_settings.revenue_lag_profile if forecast_settings else "standard")=="standard" %}selected{% endif %}>Standard</option>
+          <option value="long" {% if forecast_settings and forecast_settings.revenue_lag_profile=="long" %}selected{% endif %}>Long</option>
+        </select>
+      </label>
+    </div>
+    <div class="button-row top-gap">
+      <button type="button" class="button button-secondary" id="apply-recommended-lag">Use recommended lag settings</button>
+      {% if mapping and ((mapping.cost and mapping.cost.file_key) or mapping.cost_column) and ((mapping.leads and mapping.leads.file_key) or mapping.leads_column) and mapping.target_column %}<span class="pill">Recommended</span>{% endif %}
+    </div>
+    <p class="muted top-gap">Standard is the safest default. Short assumes revenue lands quickly after spend and leads, while Long keeps monetization memory active for longer.</p>
+  </section>
+  {% if model_error %}
+<section class="card" style="border-color:rgba(220,120,120,.28);background:rgba(177,87,87,.10);">
+  <div class="card-header"><h2>Model selection needed</h2></div>
+  <p>{{ model_error }}</p>
+</section>
+{% endif %}
+
+<fieldset>
+    <legend>Models</legend>
+    <div class="button-row" style="margin-bottom:0.75rem;">
+      <button type="button" class="button button-secondary" id="select-all-models">Select all models</button>
+      <button type="button" class="button button-secondary" id="deselect-all-models">Deselect all models</button>
+      <span class="muted">Use deselect-all to start from a clean slate, then turn on only the models you want to test.</span>
+    </div>
+    <p class="muted" style="font-size:0.82rem;margin:0 0 0.6rem;">Baselines</p>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="naive" {% if not forecast_settings or "naive" in forecast_settings.models %}checked{% endif %}> Naive <span class="help-tip" data-tooltip="A simple carry-forward benchmark. It helps prove whether advanced models are actually better.">?</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="seasonal_naive" {% if not forecast_settings or "seasonal_naive" in forecast_settings.models %}checked{% endif %}> Seasonal Naive <span class="help-tip" data-tooltip="Repeats the last known seasonal pattern and is a strong baseline for many business series.">?</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="trend_drift" {% if not forecast_settings or "trend_drift" in forecast_settings.models %}checked{% endif %}> Trend Drift <span class="help-tip" data-tooltip="Carries the recent revenue slope forward so obvious growth or decline is not flattened by a simple repeat model.">?</span></label>
+
+    <p class="muted" style="font-size:0.82rem;margin:0.8rem 0 0.6rem;">Statistical (StatsForecast)</p>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="autoarima" {% if not forecast_settings or "autoarima" in forecast_settings.models %}checked{% endif %}> AutoARIMA <span class="help-tip" data-tooltip="A classic statistical model that can capture trend and autocorrelation automatically.">?</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="autoets" {% if not forecast_settings or "autoets" in forecast_settings.models %}checked{% endif %}> AutoETS <span class="help-tip" data-tooltip="Useful for trend and seasonality with exponential smoothing behavior.">?</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="autotheta" {% if not forecast_settings or "autotheta" in forecast_settings.models %}checked{% endif %}> AutoTheta <span class="help-tip" data-tooltip="Improved Theta family — automatically selects the best Theta variant for your data.">?</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="dot" {% if not forecast_settings or "dot" in forecast_settings.models %}checked{% endif %}> Dynamic Optimized Theta <span class="help-tip" data-tooltip="State-of-the-art Theta variant that won multiple M-competition benchmarks. Excellent on revenue series.">?</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="autoces" {% if not forecast_settings or "autoces" in forecast_settings.models %}checked{% endif %}> AutoCES <span class="help-tip" data-tooltip="Complex Exponential Smoothing — strong on seasonal business and revenue data.">?</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="mstl" {% if not forecast_settings or "mstl" in forecast_settings.models %}checked{% endif %}> MSTL <span class="help-tip" data-tooltip="Multi-Seasonal Trend decomposition. Handles both weekly and annual cycles simultaneously — very effective for daily revenue.">?</span></label>
+
+    <p class="muted" style="font-size:0.82rem;margin:0.8rem 0 0.6rem;">Deep trend (Prophet)</p>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="prophet" {% if not forecast_settings or "prophet" in forecast_settings.models %}checked{% endif %}> Prophet <span class="help-tip" data-tooltip="Good for trend shifts, seasonality, and interval-oriented forecasting.">?</span></label>
+
+    <p class="muted" style="font-size:0.82rem;margin:0.8rem 0 0.6rem;">Machine learning</p>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="lightgbm" {% if not forecast_settings or "lightgbm" in forecast_settings.models %}checked{% endif %}> LightGBM <span class="help-tip" data-tooltip="A machine-learning model that works well with lag features and future drivers.">?</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="xgboost" {% if not forecast_settings or "xgboost" in forecast_settings.models %}checked{% endif %}> XGBoost <span class="help-tip" data-tooltip="Gradient-boosted trees using the same feature pipeline as LightGBM. Adds diversity to the blend and often wins on different data shapes.">?</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="random_forest" {% if not forecast_settings or "random_forest" in forecast_settings.models %}checked{% endif %}> Random Forest <span class="help-tip" data-tooltip="Bagged decision trees that are stable, strong on nonlinear relationships, and useful when revenue reacts differently across regimes.">?</span></label>
+
+    <p class="muted" style="font-size:0.82rem;margin:0.8rem 0 0.6rem;">Linear</p>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="ridge" {% if not forecast_settings or "ridge" in forecast_settings.models %}checked{% endif %}> Ridge <span class="help-tip" data-tooltip="Regularised linear regression on lag and calendar features. Fast and interpretable — competitive on stable revenue series.">?</span></label>
+    <label class="checkbox-row"><input type="checkbox" name="models" value="elasticnet" {% if not forecast_settings or "elasticnet" in forecast_settings.models %}checked{% endif %}> ElasticNet <span class="help-tip" data-tooltip="L1+L2 regularised linear model. Handles correlated features better than Ridge and can zero out irrelevant predictors.">?</span></label>
+  </fieldset>
+  <p class="muted">After you start the run, you will see a live progress screen with the current model stage and completion percentage.</p>
+  <button class="button button-primary-green" id="run-forecast-btn" type="submit">Run Forecast →
+    <span class="help-tip" data-tooltip="This starts the backtesting and forecast job in the background and opens the progress screen.">?</span>
+  </button>
+
+<script>
+(function(){
+  function setTrainingWindowReadonly(readonly){
+    const start = document.getElementById('training-window-start');
+    const end = document.getElementById('training-window-end');
+    if (start) {
+      start.readOnly = readonly;
+      start.classList.toggle('training-window-inactive', readonly);
+    }
+    if (end) {
+      end.readOnly = readonly;
+      end.classList.toggle('training-window-inactive', readonly);
+    }
+  }
+
+  function applyTrainingWindowPreset(){
+    const mode = document.getElementById('training-window-mode');
+    const start = document.getElementById('training-window-start');
+    const end = document.getElementById('training-window-end');
+    if (!mode || !start || !end) return;
+    const actualStart = {{ training_window_context.actual_data_start|tojson }};
+    const actualEnd = {{ training_window_context.actual_data_end|tojson }};
+    const presets = {{ training_window_context.preset_ranges|tojson }};
+    if (mode.value === 'all_history') {
+      setTrainingWindowReadonly(true);
+      start.value = actualStart || '';
+      end.value = actualEnd || '';
+      return;
+    }
+    setTrainingWindowReadonly(mode.value !== 'custom_range');
+    if (mode.value in presets) {
+      start.value = presets[mode.value].start || '';
+      end.value = presets[mode.value].end || '';
+    }
+  }
+  const mode = document.getElementById('training-window-mode');
+  if (mode) {
+    mode.addEventListener('change', applyTrainingWindowPreset);
+    applyTrainingWindowPreset();
+  }
+})();
+</script>
+
+</form>
+
+<div class="run-forecast-overlay" id="run-forecast-overlay" aria-hidden="true">
+  <div class="run-forecast-overlay__card" role="status" aria-live="polite">
+    <div class="run-forecast-overlay__spinner" aria-hidden="true"></div>
+    <div class="run-forecast-overlay__title">Forecast is starting…</div>
+    <p class="run-forecast-overlay__text">Your run is already being prepared. Please wait while SignalForge opens the live progress screen.</p>
+    <div class="run-forecast-overlay__subtext">No need to click the button again.</div>
+  </div>
+</div>
+
+
+<style>
+.run-forecast-overlay{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(11,15,24,.46);
+  backdrop-filter: blur(8px);
+  z-index:9999;
+}
+.run-forecast-overlay.is-visible{display:flex;}
+.run-forecast-overlay__card{
+  width:min(460px, 100%);
+  padding:28px 24px;
+  border-radius:24px;
+  border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(180deg, rgba(25,31,48,.96), rgba(17,22,36,.98));
+  box-shadow:0 24px 70px rgba(0,0,0,.34);
+  text-align:center;
+}
+.run-forecast-overlay__spinner{
+  width:58px;
+  height:58px;
+  margin:0 auto 18px;
+  border-radius:50%;
+  border:4px solid rgba(255,255,255,.14);
+  border-top-color: rgba(140, 185, 255, .95);
+  animation: runForecastSpin 0.9s linear infinite;
+}
+.run-forecast-overlay__title{
+  font-size:1.2rem;
+  font-weight:800;
+  color:var(--text);
+  margin-bottom:8px;
+}
+.run-forecast-overlay__text{
+  margin:0;
+  color:var(--muted);
+  line-height:1.55;
+}
+.run-forecast-overlay__subtext{
+  margin-top:12px;
+  font-size:.82rem;
+  font-weight:700;
+  color:var(--text);
+  opacity:.92;
+}
+.button.is-busy{
+  pointer-events:none;
+  opacity:.75;
+}
+@keyframes runForecastSpin{
+  to{transform:rotate(360deg);}
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const selectAllBtn = document.getElementById('select-all-models');
+  const deselectAllBtn = document.getElementById('deselect-all-models');
+  const profileSelect = document.getElementById('business-profile');
+  const applyProfileBtn = document.getElementById('apply-profile-package');
+  const profileTitle = document.getElementById('profile-title');
+  const profileSummary = document.getElementById('profile-summary');
+  const profileChips = document.getElementById('profile-chips');
+  const scoringMetric = document.querySelector('select[name="scoring_metric"]');
+  const revenueLagProfile = document.querySelector('select[name="revenue_lag_profile"]');
+  const lagEnabled = document.querySelector('input[name="enable_revenue_lag_modeling"]');
+  const outputMode = document.querySelector('select[name="output_mode"]');
+  const useGpu = document.querySelector('input[name="use_gpu"]');
+
+  const runForecastForm = document.getElementById('run-forecast-form');
+  const runForecastBtn = document.getElementById('run-forecast-btn');
+  const runForecastOverlay = document.getElementById('run-forecast-overlay');
+  let forecastSubmitLocked = false;
+
+  function showRunForecastOverlay() {
+    if (runForecastOverlay) {
+      runForecastOverlay.classList.add('is-visible');
+      runForecastOverlay.setAttribute('aria-hidden', 'false');
+    }
+    if (runForecastBtn) {
+      runForecastBtn.classList.add('is-busy');
+      runForecastBtn.setAttribute('disabled', 'disabled');
+      runForecastBtn.dataset.originalLabel = runForecastBtn.dataset.originalLabel || runForecastBtn.innerHTML;
+      runForecastBtn.innerHTML = 'Starting forecast…';
+    }
+  }
+
+  if (runForecastForm) {
+    runForecastForm.addEventListener('submit', function (event) {
+      if (forecastSubmitLocked) {
+        event.preventDefault();
+        return;
+      }
+      forecastSubmitLocked = true;
+      showRunForecastOverlay();
+    });
+  }
+  const modelBoxes = function () {
+    return Array.from(document.querySelectorAll('input[name="models"]'));
+  };
+  const profilePackages = {
+    general: {
+      title: 'General',
+      summary: 'Balanced defaults for mixed businesses and unknown patterns.',
+      chips: ['Balanced ranking', 'Broad model coverage', 'Standard lag posture'],
+      models: ['naive','seasonal_naive','historical_average','trend_drift','autoarima','autoets','theta','mstl','prophet','lightgbm','xgboost','random_forest','ridge','elasticnet'],
+      scoring_metric: 'balanced', revenue_lag_profile: 'standard', enable_revenue_lag_modeling: true, output_mode: 'scenario_bands'
+    },
+    subscription: {
+      title: 'Subscription',
+      summary: 'Favors smoother recurring-revenue behavior, retention-style patterns, and stable medium-term forecasts.',
+      chips: ['Recurring revenue', 'Smoother curves', 'Longer memory'],
+      models: ['naive','seasonal_naive','historical_average','trend_drift','autoets','theta','mstl','prophet','lightgbm','ridge','elasticnet'],
+      scoring_metric: 'balanced', revenue_lag_profile: 'long', enable_revenue_lag_modeling: true, output_mode: 'scenario_bands'
+    },
+    ecommerce: {
+      title: 'Ecommerce',
+      summary: 'Favors promotion-sensitive and seasonal models that react faster to bursts, peaks, and holiday timing.',
+      chips: ['Promo sensitivity', 'Seasonality', 'Shorter lag posture'],
+      models: ['naive','seasonal_naive','trend_drift','autoarima','autoets','mstl','prophet','lightgbm','xgboost','random_forest'],
+      scoring_metric: 'smape', revenue_lag_profile: 'short', enable_revenue_lag_modeling: true, output_mode: 'scenario_bands'
+    },
+    lead_gen: {
+      title: 'Lead Generation',
+      summary: 'Favors models that can learn lead-to-revenue delay and channel efficiency without overreacting to sparse spikes.',
+      chips: ['Lead lag aware', 'Acquisition efficiency', 'Balanced stability'],
+      models: ['naive','seasonal_naive','historical_average','trend_drift','autoarima','prophet','lightgbm','xgboost','ridge','elasticnet'],
+      scoring_metric: 'balanced', revenue_lag_profile: 'standard', enable_revenue_lag_modeling: true, output_mode: 'scenario_bands'
+    },
+    credit_membership: {
+      title: 'Credit / Membership',
+      summary: 'Built for businesses with lead lag, repeat spending, and high-value user behavior where near-term and repeat monetization both matter.',
+      chips: ['Repeat spend', 'User-sensitive', 'Lag + momentum'],
+      models: ['naive','seasonal_naive','historical_average','trend_drift','autoarima','prophet','lightgbm','xgboost','random_forest','ridge','elasticnet'],
+      scoring_metric: 'balanced', revenue_lag_profile: 'long', enable_revenue_lag_modeling: true, output_mode: 'scenario_bands'
+    },
+    marketplace: {
+      title: 'Marketplace',
+      summary: 'Best for two-sided volume patterns where traffic mix and conversion flow can change faster than subscription businesses.',
+      chips: ['Flow-sensitive', 'Mixed demand', 'Adaptive package'],
+      models: ['naive','seasonal_naive','historical_average','trend_drift','autoarima','autoets','prophet','lightgbm','xgboost','random_forest'],
+      scoring_metric: 'balanced', revenue_lag_profile: 'standard', enable_revenue_lag_modeling: true, output_mode: 'scenario_bands'
+    }
+  };
+
+  function updateProfileCard(profileKey) {
+    const pack = profilePackages[profileKey] || profilePackages.general;
+    if (profileTitle) profileTitle.textContent = pack.title;
+    if (profileSummary) profileSummary.textContent = pack.summary;
+    if (profileChips) {
+      profileChips.innerHTML = '';
+      pack.chips.forEach(function (chip) {
+        const span = document.createElement('span');
+        span.className = 'pill';
+        span.textContent = chip;
+        profileChips.appendChild(span);
+      });
+    }
+  }
+
+  function applyProfilePackage(profileKey) {
+    const pack = profilePackages[profileKey] || profilePackages.general;
+    const wanted = new Set(pack.models);
+    modelBoxes().forEach(function (el) { el.checked = wanted.has(el.value); });
+    if (scoringMetric) scoringMetric.value = pack.scoring_metric;
+    if (revenueLagProfile) revenueLagProfile.value = pack.revenue_lag_profile;
+    if (lagEnabled) lagEnabled.checked = !!pack.enable_revenue_lag_modeling;
+    if (outputMode) outputMode.value = pack.output_mode;
+    if (useGpu && profileKey !== 'general') { /* leave GPU choice to user; do not override */ }
+  }
+
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener('click', function () {
+      modelBoxes().forEach(function (el) { el.checked = true; });
+    });
+  }
+
+  if (deselectAllBtn) {
+    deselectAllBtn.addEventListener('click', function () {
+      modelBoxes().forEach(function (el) { el.checked = false; });
+    });
+  }
+
+  if (profileSelect) {
+    updateProfileCard(profileSelect.value);
+    profileSelect.addEventListener('change', function () {
+      updateProfileCard(profileSelect.value);
+      applyProfilePackage(profileSelect.value);
+    });
+  }
+  if (applyProfileBtn && profileSelect) {
+    applyProfileBtn.addEventListener('click', function () {
+      applyProfilePackage(profileSelect.value);
+    });
+  }
+  const hasSavedProfile = {{ 'true' if forecast_settings and forecast_settings.business_profile else 'false' }};
+  if (profileSelect && !hasSavedProfile) {
+    applyProfilePackage(profileSelect.value || 'general');
+  }
+});
+</script>
+
+<style>
+.flow-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem}.flow-step{display:flex;align-items:center;gap:.65rem;padding:.8rem 1rem;border-radius:14px;border:1px solid rgba(120,140,190,.18);background:rgba(24,32,56,.55)}.flow-step span{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:rgba(125,145,210,.18);font-weight:700}.flow-step.is-complete{border-color:rgba(63,185,80,.35)}.flow-step.is-complete span{background:rgba(34,197,94,.2);color:#baf7c8}.flow-step.is-active{border-color:rgba(72,171,224,.38);box-shadow:0 10px 24px rgba(59,130,246,.12)}.button-primary-green{background:linear-gradient(135deg,#22c55e,#16a34a)!important;border-color:rgba(44,191,96,.55)!important;color:#fff!important;box-shadow:0 10px 24px rgba(34,197,94,.16)}.button-primary-green:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(34,197,94,.24)}
+</style>
+{% endblock %}

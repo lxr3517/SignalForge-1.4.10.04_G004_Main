@@ -1,0 +1,20 @@
+{
+  "frequency": "D",
+  "horizon": 90,
+  "scoring_metric": "balanced",
+  "output_mode": "scenario_bands",
+  "use_gpu": true,
+  "enable_revenue_lag_modeling": true,
+  "revenue_lag_profile": "standard",
+  "business_profile": "general",
+  "models": [
+    "naive",
+    "lightgbm",
+    "xgboost",
+    "elasticnet"
+  ],
+  "training_window_mode": "all_history",
+  "training_window_start": null,
+  "training_window_end": null,
+  "feature_engineering": "advanced_v2"
+}

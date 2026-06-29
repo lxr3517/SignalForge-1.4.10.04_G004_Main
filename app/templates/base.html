@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SignalForge{% endblock %}</title>
+  <script>
+  (function(){
+    try {
+      var themeAliases = {
+        'arctic-glass': 'arctic-glass',
+        'midnight-blue': 'midnight-blue',
+        'cobalt-grid': 'cobalt-grid',
+        'emerald-grid': 'emerald-grid',
+        'emerald-flow': 'emerald-grid'
+      };
+      var themeCssMap = {
+        'arctic-glass': 'arctic-glass',
+        'midnight-blue': 'midnight-blue',
+        'dark': 'dark',
+        'light': 'light',
+        'chaos-black': 'chaos-black',
+        'stellar': 'stellar',
+        'forest': 'forest',
+        'sunset': 'sunset',
+        'pastel-sky': 'pastel-sky',
+        'pastel-lavender': 'pastel-lavender',
+        'pastel-mint': 'pastel-mint',
+        'pastel-peach': 'pastel-peach',
+        'cobalt-grid': 'cobalt-grid',
+        'emerald-grid': 'emerald-grid'
+      };
+      var chartPaletteAliases = { 'emerald-flow': 'emerald-flow' };
+      var chartPalettes = new Set(['balanced','aurora','sunset-pop','ocean-glow','orchid-punch','emerald-flow']);
+      var savedTheme = localStorage.getItem('forecast-theme') || 'midnight-blue';
+      var savedMode = localStorage.getItem('forecast-view-mode') || 'analyst';
+      var savedChartPalette = localStorage.getItem('forecast-chart-palette') || 'balanced';
+      savedTheme = themeAliases[savedTheme] || savedTheme;
+      savedChartPalette = chartPaletteAliases[savedChartPalette] || savedChartPalette;
+      if (!themeCssMap[savedTheme]) savedTheme = 'midnight-blue';
+      if (!chartPalettes.has(savedChartPalette)) savedChartPalette = 'balanced';
+      var resolvedTheme = themeCssMap[savedTheme] || 'midnight-blue';
+      document.documentElement.setAttribute('data-theme', resolvedTheme);
+      document.documentElement.setAttribute('data-theme-source', savedTheme);
+      document.documentElement.setAttribute('data-view-mode', savedMode === 'human' ? 'human' : 'analyst');
+      document.documentElement.setAttribute('data-chart-palette', savedChartPalette);
+    } catch (e) {
+      document.documentElement.setAttribute('data-theme', 'midnight-blue');
+      document.documentElement.setAttribute('data-theme-source', 'midnight-blue');
+      document.documentElement.setAttribute('data-view-mode', 'analyst');
+      document.documentElement.setAttribute('data-chart-palette', 'balanced');
+    }
+  })();
+  </script>
+  <link rel="stylesheet" href="/static/css/app.css?v=P068">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+    /* G017: responsive app frame
+       - Keep the app inside a 1920px working canvas on typical displays
+       - Preserve full viewport height
+       - Allow larger monitors to breathe without runaway stretching
+    */
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    .app-shell {
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      overflow-x: hidden;
+    }
+
+    .app-frame {
+      width: 100%;
+      max-width: 1920px;
+      min-height: 100vh;
+      display: flex;
+      align-items: stretch;
+      margin: 0 auto;
+    }
+
+    .sidebar,
+    .side-panel,
+    .left-nav,
+    .app-sidebar {
+      flex-shrink: 0;
+    }
+
+    .main-content,
+    .content-area,
+    .page-content,
+    .workspace-content,
+    main {
+      min-width: 0;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    .dashboard-grid,
+    .results-grid,
+    .chart-grid,
+    .panel-grid,
+    .cards-grid {
+      max-width: 100%;
+    }
+
+    .chart-card,
+    .dashboard-chart,
+    .plotly-graph-div,
+    .js-plotly-plot,
+    .table-wrap,
+    .dataframe,
+    .panel,
+    .card {
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    img, svg, canvas, table {
+      max-width: 100%;
+    }
+
+    @media (max-width: 1920px) {
+      .app-frame {
+        max-width: 100%;
+      }
+    }
+</style>
+  <link rel="icon" type="image/png" href="/static/img/logo.png">
+</head>
+<body>
+  <div class=\"app-shell\"><div class=\"app-frame\">
+  <div class="layout">
+    <aside class="sidebar" data-sidebar-shell="true">
+      <div class="sidebar-topbar">
+        <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-pressed="false" aria-label="Collapse sidebar">
+          <span class="sidebar-toggle__icon">⟨⟨</span>
+        </button>
+      </div>
+
+      <div class="brand-wrap brand-centerpiece" id="brand-centerpiece" tabindex="0" aria-label="SignalForge sidebar centerpiece">
+        <div class="brand-logo">
+          <span class="brand-logo__ring brand-logo__ring--outer" aria-hidden="true"></span>
+          <span class="brand-logo__ring brand-logo__ring--inner" aria-hidden="true"></span>
+          <img src="/static/img/logo.png" alt="SignalForge logo">
+          <div class="brand-wordmark">
+            <strong>SignalForge</strong>
+            <span>Forecast Intelligence System</span>
+            <span class="brand-credit">Luis Rodriguez</span>
+            <a class="brand-legal-link" href="/copyright">Copyright and use</a>
+          </div>
+        </div>
+        <div class="brand-subtitle">⚙ {{ app_version if app_version is defined else 'Model 1.4.10.12' }}</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/" class="sidebar-link" data-short-label="Dash">
+          <span class="sidebar-link__icon">⌂</span>
+          <span class="sidebar-link__label">Dashboard</span>
+        </a>
+        <a href="/projects/new" class="sidebar-link" data-short-label="New">
+          <span class="sidebar-link__icon">＋</span>
+          <span class="sidebar-link__label">New Project</span>
+        </a>
+        <a href="/runs" class="sidebar-link" data-short-label="Runs">
+          <span class="sidebar-link__icon">◫</span>
+          <span class="sidebar-link__label">Saved Runs</span>
+        </a>
+        <a href="/static/docs/signalforge_instruction_sheet.html" class="sidebar-link sidebar-link--guide" data-short-label="Guide" target="_blank" rel="noopener">
+          <span class="sidebar-link__icon">?</span>
+          <span class="sidebar-link__label">How to Use SignalForge</span>
+        </a>
+      </nav>
+
+      <div class="theme-switcher theme-studio" aria-label="Display options">
+        <div class="theme-studio__header">
+          <div>
+            <div class="theme-studio__eyebrow">Appearance</div>
+            <div class="theme-studio__title">Theme Studio</div>
+          </div>
+          <div class="theme-studio__badge">Live</div>
+        </div>
+        <p class="theme-switcher__note">Pick a color atmosphere and viewing style. Human Mode keeps the app friendly for non-analysts without changing the core workflow.</p>
+
+        <div class="theme-studio__swatches" aria-hidden="true">
+          <span class="theme-swatch theme-swatch--sky"></span>
+          <span class="theme-swatch theme-swatch--lavender"></span>
+          <span class="theme-swatch theme-swatch--mint"></span>
+          <span class="theme-swatch theme-swatch--ember"></span>
+        </div>
+
+        <div class="theme-field">
+          <label class="theme-switcher__label" for="theme-select">Color Atmosphere</label>
+          <select id="theme-select" class="theme-select" data-theme-select="true" aria-label="Select theme">
+            <option value="arctic-glass">Arctic Glass</option>
+            <option value="midnight-blue">Midnight Blue (Default)</option>
+            <option value="dark">Graphite</option>
+            <option value="light">Paper</option>
+            <option value="chaos-black">Obsidian</option>
+            <option value="stellar">Orbit</option>
+            <option value="forest">Evergreen</option>
+            <option value="sunset">Ember</option>
+            <option value="pastel-sky">Skyglass</option>
+            <option value="pastel-lavender">Lilac Mist</option>
+            <option value="pastel-mint">Mint Studio</option>
+            <option value="pastel-peach">Peach Sand</option>
+            <option value="cobalt-grid">Cobalt Grid</option>
+            <option value="emerald-grid">Emerald Grid</option>
+          </select>
+        </div>
+
+        <div class="theme-field">
+          <label class="theme-switcher__label" for="view-mode-select">Reading Style</label>
+          <select id="view-mode-select" class="theme-select" data-view-mode-select="true" aria-label="Select view mode">
+            <option value="analyst">Analyst Mode</option>
+            <option value="human">Human Mode</option>
+          </select>
+        </div>
+
+        <div class="theme-field">
+          <label class="theme-switcher__label" for="chart-palette-select">Graph Palette</label>
+          <select id="chart-palette-select" class="theme-select" data-chart-palette-select="true" aria-label="Select chart palette">
+            <option value="balanced">Balanced</option>
+            <option value="aurora">Aurora</option>
+            <option value="sunset-pop">Sunset Pop</option>
+            <option value="ocean-glow">Ocean Glow</option>
+            <option value="orchid-punch">Orchid Punch</option>
+            <option value="emerald-flow">Emerald Flow</option>
+          </select>
+          <div class="theme-field__actions">
+            <button type="button" class="button button-secondary theme-studio__apply" id="apply-chart-palette" disabled>Apply Graph Palette</button>
+            <span class="theme-field__status" id="chart-palette-status">Saved</span>
+          </div>
+          <p class="theme-switcher__note">Use a curated graph color set without changing the full app theme.</p>
+        </div>
+
+        <div class="theme-field">
+          <label class="theme-switcher__label" for="toggle-workspace-tips">Workspace Tips</label>
+          <button type="button" class="button button-secondary theme-studio__toggle" id="toggle-workspace-tips" aria-pressed="false">👁 Hide Tips</button>
+          <p class="theme-switcher__note">Show or hide only the dynamic context tip cards. Tables, charts, and core analysis stay visible.</p>
+        </div>
+
+        <div class="theme-studio__compact" aria-hidden="true">
+          <div class="theme-studio__compact-slot">Theme</div>
+          <div class="theme-studio__compact-slot">Mode</div>
+          <div class="theme-studio__compact-slot">Tips</div>
+        </div>
+      </div>
+    </aside>
+    
+<main class="content">
+      <div id="human-mode-banner" class="human-mode-banner" style="display:none;">🧠 Human Mode Active — labels and explanations are simplified for easier reading.</div>
+      <div id="page-tip-rail" class="context-tip-grid" data-tip-group="{% block tip_group %}general{% endblock %}"></div>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <div id="sf-loader" class="sf-loader" aria-hidden="true">
+    <div class="sf-loader__backdrop"></div>
+    <div class="sf-loader__card" role="status" aria-live="polite" aria-atomic="true">
+      <div class="sf-loader__glow"></div>
+      <div class="sf-loader__burst" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div class="sf-loader__success-orbit" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <div class="sf-loader__success-check" aria-hidden="true"></div>
+      <div class="sf-loader__confetti" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <img class="sf-loader__logo" src="/static/img/logo.png?v=brand014" alt="SignalForge logo">
+      <div class="sf-loader__eyebrow">SignalForge 1.4</div>
+      <h2 id="sf-loader-title" class="sf-loader__title">Preparing your workspace</h2>
+      <p id="sf-loader-text" class="sf-loader__text">Please wait while SignalForge gets everything ready.</p>
+      <div class="sf-loader__status-row">
+        <div id="sf-loader-phase" class="sf-loader__phase">Finalizing forecast</div>
+        <div id="sf-loader-percent" class="sf-loader__percent">42%</div>
+      </div>
+      <div class="sf-loader__progress" aria-hidden="true">
+        <span class="sf-loader__progress-fill"></span>
+      </div>
+      <div class="sf-loader__steps">
+        <span class="is-active">Upload</span>
+        <span>Mapping</span>
+        <span>Forecast</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="theme-apply-notice" class="theme-apply-notice" aria-live="polite" aria-atomic="true">Applying theme...</div>
+  {% if '/results' in request.url.path %}
+  <button type="button" id="back-to-top" class="back-to-top" aria-label="Back to top" title="Back to top">
+    <span aria-hidden="true">↑</span>
+  </button>
+  {% endif %}
+
+  <script src="/static/js/app.js?v=P061"></script>
+  <script>
+  (function(){
+    function safeApplyTheme(theme, options){
+      var aliases = {
+        'arctic-glass': 'arctic-glass',
+        'midnight-blue': 'midnight-blue',
+        'cobalt-grid': 'cobalt-grid',
+        'emerald-grid': 'emerald-grid',
+        'emerald-flow': 'emerald-grid'
+      };
+      var cssMap = {
+        'arctic-glass': 'arctic-glass',
+        'midnight-blue': 'midnight-blue',
+        'dark': 'dark',
+        'light': 'light',
+        'chaos-black': 'chaos-black',
+        'stellar': 'stellar',
+        'forest': 'forest',
+        'sunset': 'sunset',
+        'pastel-sky': 'pastel-sky',
+        'pastel-lavender': 'pastel-lavender',
+        'pastel-mint': 'pastel-mint',
+        'pastel-peach': 'pastel-peach',
+        'cobalt-grid': 'cobalt-grid',
+        'emerald-grid': 'emerald-grid'
+      };
+      var normalized = aliases[theme] || theme;
+      if (!cssMap[normalized]) normalized = 'midnight-blue';
+      var resolved = cssMap[normalized];
+      var currentTheme = document.documentElement.getAttribute('data-theme') || 'midnight-blue';
+      var currentSource = document.documentElement.getAttribute('data-theme-source') || currentTheme;
+      if ((options && options.silent === true) && currentTheme === resolved && currentSource === normalized) {
+        var existingSelect = document.querySelector('[data-theme-select="true"]');
+        if (existingSelect) existingSelect.value = normalized;
+        return;
+      }
+      if (typeof applyTheme === 'function') {
+        applyTheme(normalized, options || {});
+        return;
+      }
+      document.documentElement.setAttribute('data-theme', resolved);
+      document.documentElement.setAttribute('data-theme-source', normalized);
+      var select = document.querySelector('[data-theme-select="true"]');
+      if (select) select.value = normalized;
+      try { localStorage.setItem('forecast-theme', normalized); } catch(e) {}
+    }
+
+    function safeApplyChartPalette(palette){
+      var aliases = { 'emerald-flow': 'emerald-flow' };
+      var allowed = new Set(['balanced','aurora','sunset-pop','ocean-glow','orchid-punch','emerald-flow']);
+      var normalized = aliases[palette] || palette;
+      normalized = allowed.has(normalized) ? normalized : 'balanced';
+      document.documentElement.setAttribute('data-chart-palette', normalized);
+      var select = document.querySelector('[data-chart-palette-select="true"]');
+      var applyBtn = document.getElementById('apply-chart-palette');
+      var status = document.getElementById('chart-palette-status');
+      if (select) select.value = normalized;
+      if (applyBtn) applyBtn.disabled = true;
+      if (status) status.textContent = 'Saved';
+      try { localStorage.setItem('forecast-chart-palette', normalized); } catch(e) {}
+      try {
+        window.dispatchEvent(new CustomEvent('forecast-chart-palette-change', {
+          detail: { palette: normalized }
+        }));
+      } catch(_) {}
+      [40, 180, 420].forEach(function(delay){
+        window.setTimeout(function(){
+          try {
+            if (typeof forceChartThemeSync === 'function') forceChartThemeSync();
+            else if (typeof applyPlotlyThemeToAllCharts === 'function') applyPlotlyThemeToAllCharts();
+          } catch(_) {}
+        }, delay);
+      });
+    }
+
+    function safeApplyViewMode(mode){
+      var normalized = mode === 'human' ? 'human' : 'analyst';
+      document.documentElement.setAttribute('data-view-mode', normalized);
+      document.body.classList.toggle('human-mode-active', normalized === 'human');
+      var select = document.querySelector('[data-view-mode-select="true"]');
+      if (select) select.value = normalized;
+      try { localStorage.setItem('forecast-view-mode', normalized); } catch(e) {}
+
+      var globalHelp = document.querySelector('.global-help');
+      if (globalHelp) {
+        globalHelp.innerHTML = normalized === 'human'
+          ? 'Human Mode is on. Use the simplified labels, the guide cards below, and the top help text for plain-English explanations.'
+          : 'Hover the <span class="pill tiny">?</span> icons for quick explanations, then use the tips below to understand what matters most on each page.';
+      }
+
+      var banner = document.getElementById('human-mode-banner');
+      if (banner) banner.style.display = normalized === 'human' ? 'flex' : 'none';
+
+      var swaps = {
+        'Whale Intelligence 2.0': 'High-Value User Intelligence',
+        'User Intelligence 2.0': 'High-Value User Intelligence',
+        'Explainable AI': 'Why the Forecast Moved',
+        'Channel Attribution': 'Channel Contribution',
+        'Scenario Simulator 2.0': 'What-If Planning',
+        'Auto Alerts': 'Automatic Warnings',
+        'Cohort Intelligence': 'Group Performance Over Time',
+        'Forecast Avg / Period': 'Expected Average Per Period'
+      };
+
+      document.querySelectorAll('.results-tab-btn, .card-header h2, .card-header h3, .stat-label, th').forEach(function(node){
+        if (!node.getAttribute('data-original-text')) node.setAttribute('data-original-text', node.textContent.trim());
+        var original = node.getAttribute('data-original-text') || node.textContent.trim();
+        node.textContent = normalized === 'human' && swaps[original] ? swaps[original] : original;
+      });
+
+      if (typeof applyViewMode === 'function') {
+        applyViewMode(normalized);
+      }
+    }
+
+    function safeApplyWorkspaceTips(hidden){
+      var btn = document.getElementById('toggle-workspace-tips');
+      if (hidden) {
+        if (typeof forceHideWorkspaceTips === 'function') forceHideWorkspaceTips();
+        else document.body.classList.add('workspace-tips-hidden');
+      } else {
+        if (typeof forceShowWorkspaceTips === 'function') forceShowWorkspaceTips();
+        else document.body.classList.remove('workspace-tips-hidden');
+      }
+      if (btn) {
+        btn.textContent = hidden ? '💡 Show Tips' : '👁 Hide Tips';
+        btn.setAttribute('aria-pressed', hidden ? 'true' : 'false');
+      }
+      try { localStorage.setItem('sf_hide_workspace_tips', hidden ? '1' : '0'); } catch(e) {}
+    }
+
+
+    function bootWorkspaceTipsRecovery(){
+      var hidden = false;
+      try { hidden = localStorage.getItem('sf_hide_workspace_tips') === '1'; } catch(e) {}
+      if (!hidden) {
+        if (typeof forceShowWorkspaceTips === 'function') forceShowWorkspaceTips();
+      }
+    }
+
+    function safeInitThemeStudio(){
+      var themeSelect = document.querySelector('[data-theme-select="true"]');
+      var viewSelect = document.querySelector('[data-view-mode-select="true"]');
+      var chartPaletteSelect = document.querySelector('[data-chart-palette-select="true"]');
+      var chartPaletteApplyBtn = document.getElementById('apply-chart-palette');
+      var chartPaletteStatus = document.getElementById('chart-palette-status');
+      var tipsBtn = document.getElementById('toggle-workspace-tips');
+      var sidebarBtn = document.getElementById('sidebar-toggle');
+
+      var savedTheme = 'arctic-glass';
+      var savedMode = 'analyst';
+      var savedChartPalette = 'balanced';
+      var savedTipsHidden = false;
+      var savedSidebarCollapsed = false;
+      try {
+        savedTheme = localStorage.getItem('forecast-theme') || 'midnight-blue';
+        savedMode = localStorage.getItem('forecast-view-mode') || 'analyst';
+        savedChartPalette = localStorage.getItem('forecast-chart-palette') || 'balanced';
+        savedTipsHidden = localStorage.getItem('sf_hide_workspace_tips') === '1';
+        savedSidebarCollapsed = localStorage.getItem('signalforge_sidebar_collapsed') === '1';
+      } catch(e) {}
+
+      safeApplyTheme(savedTheme, { silent: true });
+      safeApplyViewMode(savedMode);
+      safeApplyChartPalette(savedChartPalette);
+      safeApplyWorkspaceTips(savedTipsHidden);
+      window.setTimeout(bootWorkspaceTipsRecovery, 120);
+
+      if (themeSelect && !themeSelect.dataset.boundThemeStudio) {
+        themeSelect.dataset.boundThemeStudio = '1';
+        themeSelect.addEventListener('change', function(){ safeApplyTheme(themeSelect.value, { silent: false }); });
+      }
+      if (viewSelect && !viewSelect.dataset.boundThemeStudio) {
+        viewSelect.dataset.boundThemeStudio = '1';
+        viewSelect.addEventListener('change', function(){ safeApplyViewMode(viewSelect.value); });
+      }
+      if (chartPaletteSelect && !chartPaletteSelect.dataset.boundThemeStudio) {
+        chartPaletteSelect.dataset.boundThemeStudio = '1';
+        chartPaletteSelect.addEventListener('change', function(){
+          var current = document.documentElement.getAttribute('data-chart-palette') || 'balanced';
+          var pending = chartPaletteSelect.value || 'balanced';
+          if (chartPaletteApplyBtn) chartPaletteApplyBtn.disabled = pending === current;
+          if (chartPaletteStatus) chartPaletteStatus.textContent = pending === current ? 'Saved' : 'Pending';
+        });
+      }
+      if (chartPaletteApplyBtn && !chartPaletteApplyBtn.dataset.boundThemeStudio) {
+        chartPaletteApplyBtn.dataset.boundThemeStudio = '1';
+        chartPaletteApplyBtn.addEventListener('click', function(){
+          if (chartPaletteSelect) safeApplyChartPalette(chartPaletteSelect.value);
+        });
+      }
+      if (tipsBtn && !tipsBtn.dataset.boundThemeStudio) {
+        tipsBtn.dataset.boundThemeStudio = '1';
+        tipsBtn.addEventListener('click', function(){
+          var hidden = document.body.classList.contains('workspace-tips-hidden');
+          safeApplyWorkspaceTips(!hidden);
+        });
+      }
+      if (sidebarBtn && !sidebarBtn.dataset.boundThemeStudio) {
+        sidebarBtn.dataset.boundThemeStudio = '1';
+        if (window.innerWidth >= 960) {
+          document.body.classList.toggle('sidebar-collapsed', savedSidebarCollapsed);
+          sidebarBtn.setAttribute('aria-pressed', savedSidebarCollapsed ? 'true' : 'false');
+        }
+        sidebarBtn.addEventListener('click', function(){
+          if (window.innerWidth < 960) return;
+          var collapsed = !document.body.classList.contains('sidebar-collapsed');
+          document.body.classList.toggle('sidebar-collapsed', collapsed);
+          sidebarBtn.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
+          try { localStorage.setItem('signalforge_sidebar_collapsed', collapsed ? '1' : '0'); } catch(e) {}
+        });
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', safeInitThemeStudio);
+    } else {
+      safeInitThemeStudio();
+    }
+  })();
+  </script>
+  </div></div>
+</body>
+</html>

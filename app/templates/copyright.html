@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Copyright and Use - {{ app_name }}{% endblock %}
+{% block tip_group %}general{% endblock %}
+{% block content %}
+
+<section class="legal-hero">
+  <div>
+    <div class="eyebrow">Authorized use notice</div>
+    <h1>Copyright and Use</h1>
+    <p>{{ app_name }} is proprietary forecast intelligence software owned and distributed by {{ owner_name }}. This page defines the permitted use of this copy and the distribution limits for the application.</p>
+  </div>
+  <div class="legal-hero__meta">
+    <span>{{ app_version }}</span>
+    <strong>Proprietary</strong>
+  </div>
+</section>
+
+<section class="legal-grid">
+  <article class="legal-panel legal-panel--primary">
+    <h2>Permission To Use</h2>
+    <p>{{ owner_name }} authorizes use of this application only for users, devices, teams, or organizations that have received access directly from {{ owner_name }} or an approved source controlled by {{ owner_name }}.</p>
+    <p>Authorized users may operate the application, upload their own business data, generate forecasts, review dashboards, and export reports for internal business analysis.</p>
+  </article>
+
+  <article class="legal-panel">
+    <h2>No Unauthorized Distribution</h2>
+    <p>This application, its source code, compiled files, interface, templates, licensing tools, documentation, and bundled assets may not be copied, resold, sublicensed, repackaged, hosted, transferred, or distributed by any party unless {{ owner_name }} gives explicit written permission.</p>
+    <p>Distribution is only authorized through {{ owner_name }} or a source that {{ owner_name }} expressly controls or approves.</p>
+  </article>
+
+  <article class="legal-panel">
+    <h2>Ownership</h2>
+    <p>All rights, title, and interest in {{ app_name }}, including original code, workflows, UI composition, dashboards, forecasting orchestration, visual design, and proprietary configuration, remain with {{ owner_name }} unless a separate written agreement says otherwise.</p>
+    <p>No license is granted to reverse engineer, clone, bypass activation, remove ownership notices, or create derivative products from this application.</p>
+  </article>
+
+  <article class="legal-panel">
+    <h2>Models And Third-Party References</h2>
+    <p>{{ app_name }} may reference model names, analytical methods, open-source libraries, third-party technologies, or comparative model outputs for identification, interoperability, research, benchmarking, commentary, or other legally permitted purposes.</p>
+    <p>Such references are intended to be descriptive, nominative, transformative, or fair-use where applicable. Third-party names, models, libraries, and services remain the property of their respective owners. {{ app_name }} does not claim ownership of third-party intellectual property.</p>
+  </article>
+
+  <article class="legal-panel">
+    <h2>User Data</h2>
+    <p>Users are responsible for ensuring they have the right to upload and analyze the data they provide to the application. Forecast outputs, charts, and reports depend on the accuracy and permissions of the uploaded source data.</p>
+  </article>
+
+  <article class="legal-panel">
+    <h2>No Warranty</h2>
+    <p>The application is provided for planning, forecasting, and decision-support workflows. Forecasts, model outputs, and recommendations are analytical estimates and should be reviewed before business, financial, operational, or legal decisions are made.</p>
+  </article>
+</section>
+
+<section class="legal-notice">
+  <h2>Notice</h2>
+  <p>Unauthorized distribution, license bypass, resale, or repackaging of {{ app_name }} is not permitted. Continued use of this application means you accept these use and distribution limits.</p>
+  <p class="muted">This page is an in-app ownership and authorization notice. It is not a substitute for formal legal advice or a separately executed license agreement.</p>
+</section>
+
+{% endblock %}

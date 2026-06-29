@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard · SignalForge{% endblock %}
+{% block tip_group %}home{% endblock %}
+{% block content %}
+
+<div class="dashboard-hero card">
+  <div class="dashboard-hero__content">
+    <div class="eyebrow">Forecasting command center</div>
+    <h1>{{ app_name }}</h1>
+    <p class="dashboard-hero__lead">A simpler home screen for forecasting, planning, and early-warning workflows. Start new work fast, then jump back into the projects and runs that matter most.</p>
+    <div class="button-row top-gap-sm">
+      <a class="button" href="/projects/new">Create Project</a>
+      <a class="button button-secondary" href="/runs">Open Saved Runs</a>
+    </div>
+  </div>
+  <div class="dashboard-hero__meta">
+    <div class="dashboard-version">{{ app_version }}</div>
+    <ul class="hero-bullets">
+      <li>Forecasting</li>
+      <li>Planning Studio</li>
+      <li>Early Warning</li>
+      <li>Scenario tracking</li>
+    </ul>
+  </div>
+</div>
+
+<div class="grid four stats-grid dashboard-stats">
+  <section class="card stat-card">
+    <span class="stat-label">Projects</span>
+    <div class="stat-value">{{ dashboard.project_count }}</div>
+    <div class="muted">Active forecasting workspaces</div>
+  </section>
+  <section class="card stat-card">
+    <span class="stat-label">Runs</span>
+    <div class="stat-value">{{ dashboard.run_count }}</div>
+    <div class="muted">Saved forecast attempts and outputs</div>
+  </section>
+  <section class="card stat-card">
+    <span class="stat-label">Running now</span>
+    <div class="stat-value">{{ dashboard.active_count }}</div>
+    <div class="muted">Queued or training engine sessions</div>
+  </section>
+  <section class="card stat-card">
+    <span class="stat-label">Completed</span>
+    <div class="stat-value">{{ dashboard.completed_count }}</div>
+    <div class="muted">Finished runs ready for review</div>
+  </section>
+</div>
+
+<div class="grid two dashboard-main">
+  <section class="card">
+    <div class="card-header"><h2>Recent Projects</h2><span class="muted">Continue where you left off</span></div>
+    <div class="project-stack">
+      {% for project in projects %}
+      <article class="project-tile">
+        <div>
+          <strong>{{ project.name }}</strong>
+          <div class="muted">{{ project.frequency }} · {{ project.years_of_history }} years{% if project.description %} · {{ project.description[:90] }}{% endif %}</div>
+        </div>
+        <div class="inline-actions">
+          <a href="/projects/{{ project.id }}/edit{% if latest_run_by_project.get(project.id) %}?run_id={{ latest_run_by_project.get(project.id) }}{% endif %}">Open</a>
+          <form method="post" action="/projects/{{ project.id }}/delete" class="inline-form" onsubmit="return confirm('Delete project \'{{ project.name }}\' and all its runs? This cannot be undone.');">
+            <button type="submit" class="link-button danger-link">Delete</button>
+          </form>
+        </div>
+      </article>
+      {% else %}
+      <div class="empty-state">
+        <strong>No projects yet.</strong>
+        <p class="muted">Create your first project to start uploading revenue, leads, cost, and cohort data.</p>
+        <a class="button" href="/projects/new">Create Project</a>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header"><h2>Command Center</h2><span class="muted">High-speed actions</span></div>
+    <div class="command-grid">
+      <a class="command-tile" href="/projects/new">
+        <strong>New Forecast Project</strong>
+        <span>Set up a new workspace and begin data mapping.</span>
+      </a>
+      <a class="command-tile" href="/runs">
+        <strong>Saved Runs</strong>
+        <span>Review finished outputs, planning, and scenario work.</span>
+      </a>
+      <div class="command-tile is-static">
+        <strong>Latest Project</strong>
+        <span>{% if dashboard.latest_project %}{{ dashboard.latest_project.name }}{% else %}No projects yet{% endif %}</span>
+      </div>
+      <div class="command-tile is-static">
+        <strong>Latest Run</strong>
+        <span>{% if dashboard.latest_run %}{{ dashboard.latest_run.label }} · {{ dashboard.latest_run.status }}{% else %}No runs yet{% endif %}</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="card">
+  <div class="card-header"><h2>Recent Runs</h2><span class="muted">Latest forecast activity</span></div>
+  <table>
+    <thead><tr><th>Run</th><th>Status</th><th>Project</th><th>Last Updated</th><th>Open</th></tr></thead>
+    <tbody>
+      {% for run in runs %}
+      <tr>
+        <td>{{ run.label }}</td>
+        <td><span class="status-chip status-{{ run.status|lower|replace(' ', '-') }}">{{ run.status }}</span></td>
+        <td>#{{ run.project_id }}</td>
+        <td>{{ run.updated_at.strftime('%Y-%m-%d %H:%M') if run.updated_at else '—' }}</td>
+        <td><a href="/projects/{{ run.project_id }}/results?run_id={{ run.id }}">View</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5">No runs yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

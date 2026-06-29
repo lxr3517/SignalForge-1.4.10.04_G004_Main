@@ -1,0 +1,57 @@
+app:
+  name: Forecast App
+  default_source_type: csv
+  default_history_years: 5
+  default_compare_mode: blend_vs_best
+  default_tuning_depth: balanced
+  default_export_format: csv
+  default_scope: company_total
+  default_output_mode: scenario_bands
+
+forecast:
+  default_targets:
+    - revenue
+    - roas
+  available_targets:
+    - revenue
+    - roas
+    - leads
+    - spend
+    - conversions
+    - custom
+  horizons:
+    - "7D"
+    - "30D"
+    - "90D"
+    - "12M"
+  frequencies:
+    - D
+    - W
+    - M
+  evaluation_preferences:
+    - balanced
+    - mae
+    - rmse
+    - smape
+    - bias
+    - recent_accuracy
+
+features:
+  optional_inputs:
+    - leads
+    - spend
+    - traffic
+    - conversions
+    - events
+    - outages
+    - custom_regressors
+  defaults:
+    lagged_revenue_logic: true
+    explainability: true
+    partial_period_handling: flag_only
+
+storage:
+  db_path: database/app.db
+  projects_dir: data/projects
+  raw_dir: data/raw
+  processed_dir: data/processed

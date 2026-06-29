@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SignalForge Instruction Sheet</title>
+  <style>
+    :root {
+      --bg: #eef3f9;
+      --panel: #ffffff;
+      --panel-2: #f7faff;
+      --text: #1f2a37;
+      --muted: #5d6b7c;
+      --line: #d9e3f0;
+      --blue-1: #072450;
+      --blue-2: #4269aa;
+      --blue-3: #5f87cf;
+      --accent: #eaf2ff;
+      --success: #e8f8ef;
+      --warning: #fff4df;
+      --shadow: 0 14px 34px rgba(18, 41, 76, 0.10);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #edf3fa 0%, #f7f9fc 100%);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 1120px;
+      margin: 28px auto;
+      padding: 0 18px 30px;
+    }
+
+    .sheet {
+      background: var(--panel);
+      border: 1px solid #dce5f1;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      background: linear-gradient(90deg, var(--blue-1), var(--blue-2) 34%, var(--blue-1));
+      color: #fff;
+      padding: 30px 34px 26px;
+      position: relative;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -80px -80px auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      pointer-events: none;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04));
+      border: 1px solid rgba(255,255,255,0.18);
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      font-weight: 700;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.16);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1;
+      letter-spacing: 0.2px;
+    }
+
+    .brand p {
+      margin: 6px 0 0;
+      font-size: 14px;
+      color: rgba(255,255,255,0.84);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary {
+      background: #fff;
+      color: var(--blue-1);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .summary {
+      margin-top: 22px;
+      display: grid;
+      grid-template-columns: 1.25fr 0.95fr;
+      gap: 16px;
+    }
+
+    .summary-card {
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 18px;
+      padding: 18px 18px;
+      backdrop-filter: blur(4px);
+    }
+
+    .summary-card h2 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      color: #fff;
+    }
+
+    .summary-card p,
+    .summary-card li {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.55;
+      color: rgba(255,255,255,0.92);
+    }
+
+    .summary-card ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .content {
+      padding: 24px;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(39, 72, 125, 0.05);
+    }
+
+    .panel h3 {
+      margin: 0 0 14px;
+      font-size: 18px;
+      color: var(--blue-1);
+    }
+
+    .steps {
+      display: grid;
+      gap: 12px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 12px;
+      align-items: start;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .step-number {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #e8f0ff 0%, #d9e7ff 100%);
+      color: var(--blue-1);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 17px;
+      border: 1px solid #cad9f4;
+    }
+
+    .step h4 {
+      margin: 0 0 5px;
+      font-size: 15px;
+      color: #213048;
+    }
+
+    .step p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .mini-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .mini-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .mini-card h4 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      color: var(--blue-1);
+    }
+
+    .mini-card ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .mini-card li,
+    .mini-card p {
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .callout {
+      border-radius: 18px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.55;
+      border: 1px solid transparent;
+    }
+
+    .callout strong { color: #1a2b44; }
+    .success { background: var(--success); border-color: #cfe9d8; }
+    .warning { background: var(--warning); border-color: #f0ddb0; }
+    .accent { background: var(--accent); border-color: #d4e3ff; }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 18px 24px 24px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #33445d;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #3fa56d;
+    }
+
+    @media (max-width: 930px) {
+      .summary,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page { margin: 14px auto; padding: 0 10px 20px; }
+      .hero { padding: 22px 18px 20px; }
+      .content, .footer { padding-left: 16px; padding-right: 16px; }
+      .brand h1 { font-size: 26px; }
+      .step { grid-template-columns: 38px 1fr; }
+      .step-number { width: 38px; height: 38px; }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+      .page {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+      }
+      .sheet {
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .actions {
+        display: none !important;
+      }
+      .hero, .content, .footer {
+        break-inside: avoid;
+      }
+      .btn, button {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="sheet">
+      <section class="hero">
+        <div class="topbar">
+          <div class="brand">
+            <div class="logo">SF</div>
+            <div>
+              <h1>SignalForge</h1>
+              <p>Quick instruction sheet for forecasts, diagnostics, planning, and decision support</p>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" onclick="window.print()">Print / Save PDF</button>
+            <button class="btn btn-secondary" onclick="copyShareText()">Copy Share Text</button>
+          </div>
+        </div>
+
+        <div class="summary">
+          <div class="summary-card">
+            <h2>What SignalForge is for</h2>
+            <p>
+              SignalForge helps teams turn marketing, lead, cost, and revenue data into actionable forecasting,
+              planning, and diagnostic insights. Use it to understand what is happening, what is likely to happen next,
+              and where to adjust spend or strategy.
+            </p>
+          </div>
+          <div class="summary-card">
+            <h2>Best use cases</h2>
+            <ul>
+              <li>Forecast revenue, leads, and ROAS</li>
+              <li>Spot anomalies and performance shifts early</li>
+              <li>Understand lag between leads, spend, and revenue</li>
+              <li>Compare platforms, affiliates, cohorts, and risk</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="content">
+        <div class="grid">
+          <div class="panel">
+            <h3>How to use SignalForge</h3>
+            <div class="steps">
+              <div class="step">
+                <div class="step-number">1</div>
+                <div>
+                  <h4>Load clean source data</h4>
+                  <p>Upload or connect the required data sources such as revenue, leads, cost, platform, affiliate, and any cohort or profile-level inputs your project uses.</p>
+                </div>
+              </div>
+
+              <div class="step">
+                <div class="step-number">2</div>
+                <div>
+                  <h4>Choose the scope</h4>
+                  <p>Select whether you want company-wide results or a more focused analysis by platform, affiliate, cohort, or other available grouping.</p>
+                </div>
+              </div>
+
+              <div class="step">
+                <div class="step-number">3</div>
+                <div>
+                  <h4>Set your date range and training window</h4>
+                  <p>Use a time period that reflects the business question. Short windows react faster, while longer windows usually provide more stability.</p>
+                </div>
+              </div>
+
+              <div class="step">
+                <div class="step-number">4</div>
+                <div>
+                  <h4>Run the model</h4>
+                  <p>Launch the forecast or analysis run and allow SignalForge to score current conditions, detect patterns, and prepare the result views.</p>
+                </div>
+              </div>
+
+              <div class="step">
+                <div class="step-number">5</div>
+                <div>
+                  <h4>Review the output panels</h4>
+                  <p>Focus first on the headline metrics, forecast direction, risk level, anomalies, and any driver summaries that explain what moved the numbers.</p>
+                </div>
+              </div>
+
+              <div class="step">
+                <div class="step-number">6</div>
+                <div>
+                  <h4>Turn insight into action</h4>
+                  <p>Use planning, simulation, rankings, and diagnostics to decide whether to scale, reduce, monitor, or test specific traffic sources or strategies.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mini-grid">
+            <div class="mini-card">
+              <h4>What to look at first</h4>
+              <ul>
+                <li>Forecast direction and expected range</li>
+                <li>Current risk or instability signals</li>
+                <li>Anomalies versus expected performance</li>
+                <li>Top positive and negative drivers</li>
+                <li>Platform or affiliate changes worth action</li>
+              </ul>
+            </div>
+
+            <div class="mini-card">
+              <h4>Quick interpretation guide</h4>
+              <p><strong>Forecast up:</strong> conditions are supportive, but confirm confidence and driver quality.</p>
+              <p><strong>Forecast down:</strong> check lead mix, lag effects, anomalies, and weak sources before reacting.</p>
+              <p><strong>High risk:</strong> treat outcomes as less stable and use scenario planning before major budget moves.</p>
+            </div>
+
+            <div class="callout success">
+              <strong>Best practice:</strong> Use SignalForge as a decision-support system, not a blind autopilot. Always compare model output with current business context.
+            </div>
+
+            <div class="callout warning">
+              <strong>Warning:</strong> Poor source data, missing spend, or inconsistent dates can reduce forecast quality. Verify inputs before trusting the output.
+            </div>
+
+            <div class="callout accent">
+              <strong>Good sharing workflow:</strong> Export or print this page to PDF, then pair it with a recent SignalForge run so stakeholders see both the instructions and the live result example.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="footer">
+        <div class="badge"><span class="dot"></span> Ready to share internally</div>
+        <div id="generatedText">SignalForge instruction sheet</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function copyShareText() {
+      const text = [
+        'SignalForge Instruction Sheet',
+        '',
+        '1. Load clean source data.',
+        '2. Choose the analysis scope.',
+        '3. Set the date range and training window.',
+        '4. Run the model.',
+        '5. Review forecast, risk, anomalies, and drivers.',
+        '6. Use the findings to scale, reduce, monitor, or test.',
+        '',
+        'Best use cases: forecasting, lag analysis, anomaly detection, planning, and source comparison.'
+      ].join('\n');
+
+      navigator.clipboard.writeText(text).then(() => {
+        const target = document.getElementById('generatedText');
+        const old = target.textContent;
+        target.textContent = 'Share text copied to clipboard';
+        setTimeout(() => target.textContent = old, 1800);
+      }).catch(() => {
+        alert('Clipboard copy was blocked by the browser. You can still use Print / Save PDF.');
+      });
+    }
+  </script>
+</body>
+</html>
