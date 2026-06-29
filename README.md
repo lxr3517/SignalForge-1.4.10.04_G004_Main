@@ -1,4 +1,6 @@
-# Forecast App - FastAPI Edition
+# SignalForge
+
+![SignalForge GitHub preview](docs/images/signalforge-github-preview.png)
 
 Local forecasting app using **FastAPI + Jinja2 + vanilla JS**.
 
